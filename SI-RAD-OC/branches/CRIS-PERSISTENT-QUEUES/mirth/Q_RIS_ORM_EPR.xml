@@ -1,0 +1,1473 @@
+<channel>
+  <id>15c014f3-9383-4635-b787-3e93a42f6447</id>
+  <name>Q_RIS_ORM_EPR</name>
+  <description>DEPLOY subscribing  channel for radiology ORM messages.&#xd;
+Uses Q # q0018&#xd;
+&#xd;
+09-05-11	MRD	Created fror template enque channel.&#xd;
+15-06-11	MRD	Remove patient details from PID to avoid patient match failures&#xd;
+22-06-11	MRD	Modified  OMG filter to pass NW messages without placer order ID&#xd;
+27-06-11	MRD 	Changed translation calls to use &apos;standard&apos; code template wrappers&#xd;
+29-06-11	MRD	Revised scheduling logic in NTE  to use new EPR Dept Order Status Code &apos;EXAMREM&apos; &#xd;
+21-07-11	MRD	Retry alert added to postprocesser&#xd;
+13-09-11	MRD	Do not process status comment NTE if reflex (NW) message&#xd;
+	MRD	Override SC status with &apos;EXAMSTA&apos; if sent by RIS in NW order (reflex) &#xd;
+20-09-11	MRD	Now processes order acknowledgment with &apos;OC&apos; (order canceled)&#xd;
+18-10-11	MRD	ORG NACK alerts now be routed according to originating CRIS organisation&#xd;
+25-10-11 	MRD	Set PID porcessing to pick up ORH and NOC returned from CRIS &#xd;
+10-11-11	HS	Added code to perform advanced subscription&#xd;
+14-11-11	MRD	Defend postporcessor by testing for null response object&#xd;
+20/12/2011	MRD	Modified so does not store filtered message data &#xd;
+21/12/11	MRD	Extended ACK timeout period to 1 min&#xd;
+08/02/2012	I Marshall	ACK timeout changed from 1 to 2 mins and keep connection open set to on&#xd;
+11/04/12	MRD	When alerting ORG UA exceptions the MRN retrieved for the email is based on the organisation provided in ORC 19.1&#xd;
+&#xd;
+TO DO:&#xd;
+&#xd;
+1	Filter OMG and ORG to correct destinations			Completed 17/05/2011&#xd;
+2	Process ORG to raise email if message not accepted by CRIS	Completed 17/05/2011&#xd;
+3	Move Alex&apos;s Transformers into OMG destination		Completed 17/05/2011&#xd;
+4	Modifiy Inbound and outbound templates			Completed 17/05/2011&#xd;
+5	Re-factor transform of OMG to ORM for transmittion to EPR		Completed 24/02/2011&#xd;
+5a	Refactor ORC segment processing			Completed 17/05/2011&#xd;
+5b	Refactor OBR segment processing			Completed 18/05/2011&#xd;
+5c	Refactor NTE segment processing			Completed 18/05/2011&#xd;
+5d	Remove OBX segment processing			Completed 18/05/2011&#xd;
+5e	Map exam code				Completed 23/05/2011&#xd;
+6	Check on data type properties			Completed 18/05/2011&#xd;
+7	Filter out any traffic from direct referals			Completed 18/05/2011&#xd;
+8	Review all codests and mappings on MDMS			Completed 18/05/2011&#xd;
+9	Deploy all codeset mappings				Completed 18/05/2011			&#xd;
+10	Associate translators with channel			Completed 18/05/2011&#xd;
+11	Sould return translated exam name text in OBR 4.2		Completed 24/02/2011&#xd;
+12	Fix translation logging&#xd;
+13	Retest&#xd;
+14	Reset duplicate filter&#xd;
+&#xd;
+	</description>
+  <enabled>true</enabled>
+  <version>2.2.1.5861</version>
+  <lastModified>
+    <time>1344272823133</time>
+    <timezone>Europe/London</timezone>
+  </lastModified>
+  <revision>17</revision>
+  <sourceConnector>
+    <name>sourceConnector</name>
+    <properties>
+      <property name="DataType">JavaScript Reader</property>
+      <property name="host">sink</property>
+      <property name="pollingFrequency">100</property>
+      <property name="pollingType">interval</property>
+      <property name="script">// get context information
+var channelName = getChannelName();
+var subsNumber = getSubscriptionNumber();
+var dqMessage = null;
+
+try 
+{	
+/*
+   	if(subsNumber == null || subsNumber == &quot;&quot;) 
+    {
+		// get de-queue message object of type nhs.ohis.si.queueing.data.dequeuedMessage
+		dqMessage = Packages.nhs.ohis.si.queueing.MessageQueuer.getMessageFromQueue(channelName, getQueueDBConnection());
+	    if(dqMessage.getMessageXML().size() &gt; 0) {
+		   // put duplicate status onto channel map
+   		   setDuplicateStatus(dqMessage.getMessageDuplicateCode());
+		   //put subscription number onto map
+		   setSubscriptionNumber(dqMessage.getSubscriptionNumber());
+		} 
+	}
+    else 
+    {
+		dqMessage = Packages.nhs.ohis.si.queueing.data.DequeuedMessage();
+	}
+*/
+
+	//09-NOV-11 HS&amp;MD 	ADVANCED SUBSCRIBING CODE
+   	if((subsNumber == null || subsNumber == &quot;&quot;) &amp;&amp; shouldPollDB(getQueueID()))
+    {
+		// get de-queue message object of type nhs.ohis.si.queueing.data.dequeuedMessage
+		dqMessage = Packages.nhs.ohis.si.queueing.MessageQueuer.getMessageFromQueue(channelName, getQueueDBConnection());
+	    if(dqMessage.getMessageXML().size() &gt; 0) 
+		{
+			   // put duplicate status onto channel map
+	   		   setDuplicateStatus(dqMessage.getMessageDuplicateCode());
+			   //put subscription number onto map
+			   setSubscriptionNumber(dqMessage.getSubscriptionNumber());
+			   setMsgNumber(dqMessage.getMessageNumber());
+			   setQueueID(dqMessage.getQueueID());			
+		}
+
+		setLastDbPoll();
+	}
+    else 
+    {
+		dqMessage = Packages.nhs.ohis.si.queueing.data.DequeuedMessage();
+	}
+	
+}
+catch(error)
+{
+    var errorMessage = channelName + &quot;: &quot; + error.name + &quot;-&quot; + error.message;
+	logger.error(errorMessage);
+	stopChannel(channelId);
+}
+finally
+{
+	return dqMessage.getMessageXML();
+}</property>
+    </properties>
+    <transformer>
+      <steps/>
+      <inboundTemplate encoding="base64"></inboundTemplate>
+      <outboundTemplate encoding="base64"></outboundTemplate>
+      <inboundProtocol>XML</inboundProtocol>
+      <outboundProtocol>HL7V2</outboundProtocol>
+      <inboundProperties>
+        <property name="stripNamespaces">true</property>
+      </inboundProperties>
+      <outboundProperties>
+        <property name="convertLFtoCR">true</property>
+        <property name="handleRepetitions">true</property>
+        <property name="handleSubcomponents">true</property>
+        <property name="stripNamespaces">true</property>
+        <property name="useStrictParser">false</property>
+        <property name="useStrictValidation">false</property>
+      </outboundProperties>
+    </transformer>
+    <filter>
+      <rules/>
+    </filter>
+    <transportName>JavaScript Reader</transportName>
+    <mode>SOURCE</mode>
+    <enabled>true</enabled>
+    <version>2.2.1.5861</version>
+  </sourceConnector>
+  <destinationConnectors>
+    <connector>
+      <name>ORG-destination</name>
+      <properties>
+        <property name="DataType">Channel Writer</property>
+        <property name="host">sink</property>
+        <property name="synchronised">0</property>
+        <property name="template">${message.encodedData}</property>
+      </properties>
+      <transformer>
+        <steps>
+          <step>
+            <sequenceNumber>0</sequenceNumber>
+            <name>Alert Exceptions</name>
+            <script>// MRD: 17/05/2011
+
+// EPR can not accept application acknowledgements
+// If CRIS returns an ORG containing an exception 
+// we need to send EMAIL to someone from the TIE
+
+
+try {
+	// get the acknowledgement code
+	var orderControlCode = msg[&apos;ORC&apos;][&apos;ORC.1&apos;][&apos;ORC.1.1&apos;].toString();
+
+	if(orderControlCode != &quot;OK&quot;) {
+	
+	// analyse exception
+		var exceptionName = &quot;&quot;;
+	
+		switch (orderControlCode){
+			case &apos;UA&apos; :
+				exceptionName = &quot;CRIS unable to accept new order.&quot;;
+				break;	
+			case &apos;UC&apos; :
+				exceptionName = &quot;CRIS unable to accept order cancelation.&quot;;
+				break;
+			case &apos;OC&apos; :
+				exceptionName = &quot;CRIS accepted order cancelation.&quot;;
+				break;
+			case &apos;OK&apos; :
+				exceptionName = &quot;CRIS accepted message.&quot;;
+				break;
+			default :
+				exceptionName = &quot;CRIS unable to accept order message - unknown reason.&quot;;
+				break;
+		}				
+		// log error
+		//logger.error(&apos;exceptionName&apos;);	
+
+		// Compose email body
+		var eprOrderNum = msg[&apos;ORC&apos;][&apos;ORC.2&apos;][&apos;ORC.2.1&apos;].toString();
+		var examName = msg[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.2&apos;].toString();
+        var reason =  msg[&apos;ORC&apos;][&apos;ORC.16&apos;][&apos;ORC.16.2&apos;].toString();
+		var org = msg[&apos;OBR&apos;][&apos;OBR.19&apos;][&apos;OBR.19.1&apos;].toString();
+		var patID = &apos;&apos;;
+
+		// 10/04/12  MRD  Retrieve ORH MRN if no NOC MRN in message
+		// var patID = getPID(msg[&apos;PID&apos;][&apos;PID.3&apos;],&apos;RBF03&apos;,&apos;MR&apos;,&apos;PID.3.4&apos;,&apos;PID.3.5&apos;,&apos;PID.3.1&apos;);
+		// if(patID.len == 0) patID = getPID(msg[&apos;PID&apos;][&apos;PID.3&apos;],&apos;RTH&apos;,&apos;MR&apos;,&apos;PID.3.4&apos;,&apos;PID.3.5&apos;,&apos;PID.3.1&apos;);
+		
+		// extract relevant MRN from message
+		if(org == &apos;NOC&apos;) patID = getPID(msg[&apos;PID&apos;][&apos;PID.3&apos;],&apos;RBF03&apos;,&apos;MR&apos;,&apos;PID.3.4&apos;,&apos;PID.3.5&apos;,&apos;PID.3.1&apos;);
+		else if (org == &apos;ORH&apos;) patID = getPID(msg[&apos;PID&apos;][&apos;PID.3&apos;],&apos;RTH&apos;,&apos;MR&apos;,&apos;PID.3.4&apos;,&apos;PID.3.5&apos;,&apos;PID.3.1&apos;);
+		if(patID == &apos;&apos;) patID = &apos;No &apos; + org + &apos; MRN present in PID3!&apos;; 	
+
+		var emailBody = exceptionName + &quot; &quot;
+                    + &quot;MRN: &quot; + patID
+                    + &quot;  Order Number: &quot; + 	&apos; &apos; + org + &apos; &apos; + eprOrderNum
+					+ &quot;  Exam Name: &quot; + examName
+					+ &quot;  Reason: &quot; + reason;				
+
+		
+		// send email
+		// distinguish between  ORH and NOC recipients
+		var smtpConn = SMTPConnectionFactory.createSMTPConnection();
+		
+		
+		switch (org){
+			case &apos;NOC&apos; :
+						smtpConn.send(&quot;TIEsupport@ohis.nhs.uk&quot;,
+                        	&quot;&quot;,
+                        	&quot;oxnettieprod01@ohis.nhs.uk&quot;,
+                        	exceptionName,
+                        	emailBody);
+				break;	
+			case &apos;ORH&apos; :
+						smtpConn.send(&quot;TIEsupport@ohis.nhs.uk&quot;,
+                        	&quot;&quot;,
+                        	&quot;oxnettieprod01@ohis.nhs.uk&quot;,
+                        	exceptionName,
+                        	emailBody);
+				break;
+			default :
+						smtpConn.send(&quot;TIEsupport@ohis.nhs.uk&quot;,
+                        	&quot;&quot;,
+                        	&quot;oxnettieprod01@ohis.nhs.uk&quot;,
+                        	exceptionName,
+                        	emailBody);
+				break;
+		}				
+
+	}
+}
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( ORG destination transformer ) &quot; + e.name + &quot;: &quot; + e.message);
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// MRD: 17/05/2011
+
+// EPR can not accept application acknowledgements
+// If CRIS returns an ORG containing an exception 
+// we need to send EMAIL to someone from the TIE
+
+
+try {
+	// get the acknowledgement code
+	var orderControlCode = msg[&apos;ORC&apos;][&apos;ORC.1&apos;][&apos;ORC.1.1&apos;].toString();
+
+	if(orderControlCode != &quot;OK&quot;) {
+	
+	// analyse exception
+		var exceptionName = &quot;&quot;;
+	
+		switch (orderControlCode){
+			case &apos;UA&apos; :
+				exceptionName = &quot;CRIS unable to accept new order.&quot;;
+				break;	
+			case &apos;UC&apos; :
+				exceptionName = &quot;CRIS unable to accept order cancelation.&quot;;
+				break;
+			case &apos;OC&apos; :
+				exceptionName = &quot;CRIS accepted order cancelation.&quot;;
+				break;
+			case &apos;OK&apos; :
+				exceptionName = &quot;CRIS accepted message.&quot;;
+				break;
+			default :
+				exceptionName = &quot;CRIS unable to accept order message - unknown reason.&quot;;
+				break;
+		}				
+		// log error
+		//logger.error(&apos;exceptionName&apos;);	
+
+		// Compose email body
+		var eprOrderNum = msg[&apos;ORC&apos;][&apos;ORC.2&apos;][&apos;ORC.2.1&apos;].toString();
+		var examName = msg[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.2&apos;].toString();
+        var reason =  msg[&apos;ORC&apos;][&apos;ORC.16&apos;][&apos;ORC.16.2&apos;].toString();
+		var org = msg[&apos;OBR&apos;][&apos;OBR.19&apos;][&apos;OBR.19.1&apos;].toString();
+		var patID = &apos;&apos;;
+
+		// 10/04/12  MRD  Retrieve ORH MRN if no NOC MRN in message
+		// var patID = getPID(msg[&apos;PID&apos;][&apos;PID.3&apos;],&apos;RBF03&apos;,&apos;MR&apos;,&apos;PID.3.4&apos;,&apos;PID.3.5&apos;,&apos;PID.3.1&apos;);
+		// if(patID.len == 0) patID = getPID(msg[&apos;PID&apos;][&apos;PID.3&apos;],&apos;RTH&apos;,&apos;MR&apos;,&apos;PID.3.4&apos;,&apos;PID.3.5&apos;,&apos;PID.3.1&apos;);
+		
+		// extract relevant MRN from message
+		if(org == &apos;NOC&apos;) patID = getPID(msg[&apos;PID&apos;][&apos;PID.3&apos;],&apos;RBF03&apos;,&apos;MR&apos;,&apos;PID.3.4&apos;,&apos;PID.3.5&apos;,&apos;PID.3.1&apos;);
+		else if (org == &apos;ORH&apos;) patID = getPID(msg[&apos;PID&apos;][&apos;PID.3&apos;],&apos;RTH&apos;,&apos;MR&apos;,&apos;PID.3.4&apos;,&apos;PID.3.5&apos;,&apos;PID.3.1&apos;);
+		if(patID == &apos;&apos;) patID = &apos;No &apos; + org + &apos; MRN present in PID3!&apos;; 	
+
+		var emailBody = exceptionName + &quot; &quot;
+                    + &quot;MRN: &quot; + patID
+                    + &quot;  Order Number: &quot; + 	&apos; &apos; + org + &apos; &apos; + eprOrderNum
+					+ &quot;  Exam Name: &quot; + examName
+					+ &quot;  Reason: &quot; + reason;				
+
+		
+		// send email
+		// distinguish between  ORH and NOC recipients
+		var smtpConn = SMTPConnectionFactory.createSMTPConnection();
+		
+		
+		switch (org){
+			case &apos;NOC&apos; :
+						smtpConn.send(&quot;TIEsupport@ohis.nhs.uk&quot;,
+                        	&quot;&quot;,
+                        	&quot;oxnettieprod01@ohis.nhs.uk&quot;,
+                        	exceptionName,
+                        	emailBody);
+				break;	
+			case &apos;ORH&apos; :
+						smtpConn.send(&quot;TIEsupport@ohis.nhs.uk&quot;,
+                        	&quot;&quot;,
+                        	&quot;oxnettieprod01@ohis.nhs.uk&quot;,
+                        	exceptionName,
+                        	emailBody);
+				break;
+			default :
+						smtpConn.send(&quot;TIEsupport@ohis.nhs.uk&quot;,
+                        	&quot;&quot;,
+                        	&quot;oxnettieprod01@ohis.nhs.uk&quot;,
+                        	exceptionName,
+                        	emailBody);
+				break;
+		}				
+
+	}
+}
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( ORG destination transformer ) &quot; + e.name + &quot;: &quot; + e.message);
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>1</sequenceNumber>
+            <name>Local Functions</name>
+            <script>//Gets id from PID3 by assiginer code and type
+//Throws custom error if code exception
+function getPID(SEGn, assigner_code, type_code,pos1,pos2,pos3) {
+	var pid = &apos;&apos;;
+	try {
+		var pidcount = SEGn.length();
+		for(var index = 0; index &lt; pidcount; index++)
+		{
+			if(SEGn[pos1][index] != null &amp;&amp; SEGn[pos2][index] != null) {
+				if(SEGn[pos1][index].toString() == assigner_code &amp;&amp; SEGn[pos2][index].toString() == type_code) 
+				{
+					pid = SEGn[pos3][index].toString();
+					break;
+				}
+			}
+
+		}
+		return pid;
+	}
+	catch (e) {
+    	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( getPID ) &quot; + e.name + &quot;: &quot; + e.message);
+	}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>//Gets id from PID3 by assiginer code and type
+//Throws custom error if code exception
+function getPID(SEGn, assigner_code, type_code,pos1,pos2,pos3) {
+	var pid = &apos;&apos;;
+	try {
+		var pidcount = SEGn.length();
+		for(var index = 0; index &lt; pidcount; index++)
+		{
+			if(SEGn[pos1][index] != null &amp;&amp; SEGn[pos2][index] != null) {
+				if(SEGn[pos1][index].toString() == assigner_code &amp;&amp; SEGn[pos2][index].toString() == type_code) 
+				{
+					pid = SEGn[pos3][index].toString();
+					break;
+				}
+			}
+
+		}
+		return pid;
+	}
+	catch (e) {
+    	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( getPID ) &quot; + e.name + &quot;: &quot; + e.message);
+	}
+}</string>
+              </entry>
+            </data>
+          </step>
+        </steps>
+        <inboundTemplate encoding="base64">TVNIfF5+XCZ8Q1JJU3xMSVZFfHx8MjAxMTA3MjYxNDA2MTl8fE9SR15PMjB8UkVTUE9OU0VRNDI1
+MDU5NzFUNDMwMjAxNjJ8UHwyLjQNTVNBfEFFfFE0MjUwNTk3MVQ0MzAyMDE2Mg1QSUR8fHwxMDA2
+MjYyOV5eXlJCRjAzXk1SfHxTQ09UVF5DQVJPTHx8MTk2NTEwMDcNT1JDfFVBfDY0MDgzNzN8fHx8
+fF5eXjIwMTEwNzI2MTQwNXx8MjAxMTA3MjYxNDA2MTl8fHxDNDQxNTI2Nl5KQUNLU09OLCBXSUxM
+SUFNfHx8fE9FXk9yZGVyIGV4aXN0cyBvbiBDUklTIFdBUk5JTkcscmVmZXJyYWwgc291cmNlIGRv
+ZXMgbm90IGV4aXN0IG9uIENSSVMsd2FyZCBjb2RlIGlzIGJsYW5rfDExMA1PQlJ8fDY0MDgzNzN8
+fFhGSUlMXlhSIEZpbmdlciBJbmRleCBMdHx8fHx8fHx8fHx8fHx8fHx8fHx8Ug==</inboundTemplate>
+        <outboundTemplate encoding="base64"></outboundTemplate>
+        <inboundProtocol>HL7V2</inboundProtocol>
+        <outboundProtocol>HL7V2</outboundProtocol>
+        <inboundProperties>
+          <property name="convertLFtoCR">true</property>
+          <property name="handleRepetitions">true</property>
+          <property name="handleSubcomponents">true</property>
+          <property name="stripNamespaces">true</property>
+          <property name="useStrictParser">false</property>
+          <property name="useStrictValidation">false</property>
+        </inboundProperties>
+        <outboundProperties>
+          <property name="convertLFtoCR">true</property>
+          <property name="handleRepetitions">true</property>
+          <property name="handleSubcomponents">true</property>
+          <property name="stripNamespaces">true</property>
+          <property name="useStrictParser">false</property>
+          <property name="useStrictValidation">false</property>
+        </outboundProperties>
+      </transformer>
+      <filter>
+        <rules>
+          <rule>
+            <sequenceNumber>0</sequenceNumber>
+            <name>DuplicateFilter</name>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>var dupStatus = getDuplicateStatus(); 
+return (dupStatus == &apos;NODUP&apos;|| dupStatus == &apos;NOCHK&apos;) ;</string>
+              </entry>
+            </data>
+            <type>JavaScript</type>
+            <script>var dupStatus = getDuplicateStatus(); 
+return (dupStatus == &apos;NODUP&apos;|| dupStatus == &apos;NOCHK&apos;) ;</script>
+            <operator>NONE</operator>
+          </rule>
+          <rule>
+            <sequenceNumber>1</sequenceNumber>
+            <name>Allow ORG</name>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>return (msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString() == &quot;ORG&quot;);</string>
+              </entry>
+            </data>
+            <type>JavaScript</type>
+            <script>return (msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString() == &quot;ORG&quot;);</script>
+            <operator>AND</operator>
+          </rule>
+        </rules>
+      </filter>
+      <transportName>Channel Writer</transportName>
+      <mode>DESTINATION</mode>
+      <enabled>true</enabled>
+      <version>2.2.1.5861</version>
+    </connector>
+    <connector>
+      <name>OMG-destination</name>
+      <properties>
+        <property name="DataType">LLP Sender</property>
+        <property name="ackTimeout">120000</property>
+        <property name="bufferSize">65536</property>
+        <property name="charEncoding">hex</property>
+        <property name="charsetEncoding">DEFAULT_ENCODING</property>
+        <property name="host">155.231.29.83</property>
+        <property name="keepSendSocketOpen">1</property>
+        <property name="maxRetryCount">2</property>
+        <property name="messageEnd">0x1C</property>
+        <property name="messageStart">0x0B</property>
+        <property name="port">30050</property>
+        <property name="processHl7AckResponse">1</property>
+        <property name="queueAckTimeout">1</property>
+        <property name="queuePollInterval">200</property>
+        <property name="reconnectMillisecs">10000</property>
+        <property name="recordSeparator">0x0D</property>
+        <property name="replyChannelId">sink</property>
+        <property name="rotateQueue">0</property>
+        <property name="segmentEnd">0x0D</property>
+        <property name="sendTimeout">5000</property>
+        <property name="tcpProtocolClassName">org.mule.providers.tcp.protocols.TcpProtocol</property>
+        <property name="template">${message.encodedData}</property>
+        <property name="usePersistentQueues">0</property>
+      </properties>
+      <transformer>
+        <steps>
+          <step>
+            <sequenceNumber>0</sequenceNumber>
+            <name>Get Translator</name>
+            <script>// Get reference to translator
+var translator = getTranslator();</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// Get reference to translator
+var translator = getTranslator();</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>1</sequenceNumber>
+            <name>MSH</name>
+            <script>try {
+
+	var msgtype = msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString();
+	var msgevent = msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.2&apos;].toString();
+
+	// NOTE that sending/receiving apps, facilities and message type
+	// are in outbound template
+	
+	// Copy the date/time of message
+	tmp[&apos;MSH&apos;][&apos;MSH.7&apos;] = msg[&apos;MSH&apos;][&apos;MSH.7&apos;];
+
+	// Append exam key to message control ID (BT principles)
+	tmp[&apos;MSH&apos;][&apos;MSH.10&apos;] = msg[&apos;MSH&apos;][&apos;MSH.10&apos;][&apos;MSH.10.1&apos;].toString() + &quot;-&quot; + msg[&apos;ORC&apos;][&apos;ORC.3&apos;][&apos;ORC.3.1&apos;].toString();
+}
+
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( MSH ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>try {
+
+	var msgtype = msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString();
+	var msgevent = msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.2&apos;].toString();
+
+	// NOTE that sending/receiving apps, facilities and message type
+	// are in outbound template
+	
+	// Copy the date/time of message
+	tmp[&apos;MSH&apos;][&apos;MSH.7&apos;] = msg[&apos;MSH&apos;][&apos;MSH.7&apos;];
+
+	// Append exam key to message control ID (BT principles)
+	tmp[&apos;MSH&apos;][&apos;MSH.10&apos;] = msg[&apos;MSH&apos;][&apos;MSH.10&apos;][&apos;MSH.10.1&apos;].toString() + &quot;-&quot; + msg[&apos;ORC&apos;][&apos;ORC.3&apos;][&apos;ORC.3.1&apos;].toString();
+}
+
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( MSH ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>2</sequenceNumber>
+            <name>PID</name>
+            <script>try {
+
+	// MRD: 23/05/2011
+	// Iterate over patient identifiers
+	// output MRN and NHS only
+	var newPID3 = &quot;&quot;;
+	var pidCount = 0;
+
+	for each ( pid3 in msg[&apos;PID&apos;][&apos;PID.3&apos;])	{
+		auth = pid3[&apos;PID.3.4&apos;].toString();
+		type = pid3[&apos;PID.3.5&apos;].toString();
+		
+        //logger.error(auth);
+		
+        if (auth == &quot;NHS&quot; ) {
+			if(pidCount &gt; 0) newPID3 += &quot;~&quot;;
+			newPID3 += removeSpaces(pid3[&apos;PID.3.1&apos;].toString()) + &quot;^^^NHSNBR^NHSNMBR&quot;;
+			pidCount++;
+		}
+		else if (auth == &quot;RBF03&quot; || auth == &quot;RTH&quot;) {
+			if(pidCount &gt; 0) newPID3 += &quot;~&quot;;
+			newPID3 += pid3[&apos;PID.3.1&apos;].toString() + &quot;^^^&quot; + &quot;NOC&quot; + &quot;-MRN^MRN&quot;;
+			pidCount++;
+		}
+	}
+	tmp[&apos;PID&apos;][&apos;PID.3&apos;] = newPID3;	
+
+	// Move patient demographics for admin purposes
+	tmp[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.1&apos;] = msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.1&apos;].toString();
+	tmp[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.2&apos;] = msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.2&apos;].toString();
+	tmp[&apos;PID&apos;][&apos;PID.7&apos;][&apos;PID.7.1&apos;] = msg[&apos;PID&apos;][&apos;PID.7&apos;][&apos;PID.7.1&apos;].toString();
+
+
+}
+
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( PID ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>try {
+
+	// MRD: 23/05/2011
+	// Iterate over patient identifiers
+	// output MRN and NHS only
+	var newPID3 = &quot;&quot;;
+	var pidCount = 0;
+
+	for each ( pid3 in msg[&apos;PID&apos;][&apos;PID.3&apos;])	{
+		auth = pid3[&apos;PID.3.4&apos;].toString();
+		type = pid3[&apos;PID.3.5&apos;].toString();
+		
+        //logger.error(auth);
+		
+        if (auth == &quot;NHS&quot; ) {
+			if(pidCount &gt; 0) newPID3 += &quot;~&quot;;
+			newPID3 += removeSpaces(pid3[&apos;PID.3.1&apos;].toString()) + &quot;^^^NHSNBR^NHSNMBR&quot;;
+			pidCount++;
+		}
+		else if (auth == &quot;RBF03&quot; || auth == &quot;RTH&quot;) {
+			if(pidCount &gt; 0) newPID3 += &quot;~&quot;;
+			newPID3 += pid3[&apos;PID.3.1&apos;].toString() + &quot;^^^&quot; + &quot;NOC&quot; + &quot;-MRN^MRN&quot;;
+			pidCount++;
+		}
+	}
+	tmp[&apos;PID&apos;][&apos;PID.3&apos;] = newPID3;	
+
+	// Move patient demographics for admin purposes
+	tmp[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.1&apos;] = msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.1&apos;].toString();
+	tmp[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.2&apos;] = msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.2&apos;].toString();
+	tmp[&apos;PID&apos;][&apos;PID.7&apos;][&apos;PID.7.1&apos;] = msg[&apos;PID&apos;][&apos;PID.7&apos;][&apos;PID.7.1&apos;].toString();
+
+
+}
+
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( PID ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>3</sequenceNumber>
+            <name>PV1</name>
+            <script>try {
+
+	// MRD 16/05/2011 Translate the patient type
+	//var newpatienttype = translateWithDefault(translator, 
+    //                                            &quot;PAT-TYPE&quot;,
+    //                                             msg[&apos;PV1&apos;][&apos;PV1.18&apos;][&apos;PV1.18.1&apos;].toString(),
+    //                                             &quot;NOT SPECIFIED&quot;).toString();
+	// MRD 27/06/2011 : Use code template wrapper
+	var newpatienttype = translateWithDefault(translator, 
+                                                &quot;PAT-TYPE&quot;,
+                                                 msg[&apos;PV1&apos;][&apos;PV1.18&apos;][&apos;PV1.18.1&apos;].toString(),
+                                                 &quot;NOT SPECIFIED&quot;,
+                                                 &quot;Default value&quot;).toString();	
+
+	// Millennium requires this in both 2 and 18 - no idea why as spec says 2 should be derived from 18,
+	// yet if 2 is empty it fails. Go figure.
+	tmp[&apos;PV1&apos;][&apos;PV1.18&apos;] = newpatienttype;
+	tmp[&apos;PV1&apos;][&apos;PV1.2&apos;] = newpatienttype;
+
+	// Copy the visit number
+	tmp[&apos;PV1&apos;][&apos;PV1.19&apos;] = msg[&apos;PV1&apos;][&apos;PV1.19&apos;][&apos;PV1.19.1&apos;].toString();
+
+	// MRD 16/05/2011 Translate the patient location
+	tmp[&apos;PV1&apos;][&apos;PV1.3&apos;] = translateWithDefault(translator, 
+                                                &quot;LOCATION&quot;,
+                                                 msg[&apos;ORC&apos;][&apos;ORC.13&apos;][&apos;ORC.13.1&apos;].toString(),
+                                                 &quot;NOC-Ward C&quot;).toString();
+}
+
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( PV1 ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>try {
+
+	// MRD 16/05/2011 Translate the patient type
+	//var newpatienttype = translateWithDefault(translator, 
+    //                                            &quot;PAT-TYPE&quot;,
+    //                                             msg[&apos;PV1&apos;][&apos;PV1.18&apos;][&apos;PV1.18.1&apos;].toString(),
+    //                                             &quot;NOT SPECIFIED&quot;).toString();
+	// MRD 27/06/2011 : Use code template wrapper
+	var newpatienttype = translateWithDefault(translator, 
+                                                &quot;PAT-TYPE&quot;,
+                                                 msg[&apos;PV1&apos;][&apos;PV1.18&apos;][&apos;PV1.18.1&apos;].toString(),
+                                                 &quot;NOT SPECIFIED&quot;,
+                                                 &quot;Default value&quot;).toString();	
+
+	// Millennium requires this in both 2 and 18 - no idea why as spec says 2 should be derived from 18,
+	// yet if 2 is empty it fails. Go figure.
+	tmp[&apos;PV1&apos;][&apos;PV1.18&apos;] = newpatienttype;
+	tmp[&apos;PV1&apos;][&apos;PV1.2&apos;] = newpatienttype;
+
+	// Copy the visit number
+	tmp[&apos;PV1&apos;][&apos;PV1.19&apos;] = msg[&apos;PV1&apos;][&apos;PV1.19&apos;][&apos;PV1.19.1&apos;].toString();
+
+	// MRD 16/05/2011 Translate the patient location
+	tmp[&apos;PV1&apos;][&apos;PV1.3&apos;] = translateWithDefault(translator, 
+                                                &quot;LOCATION&quot;,
+                                                 msg[&apos;ORC&apos;][&apos;ORC.13&apos;][&apos;ORC.13.1&apos;].toString(),
+                                                 &quot;NOC-Ward C&quot;).toString();
+}
+
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( PV1 ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>4</sequenceNumber>
+            <name>ORC</name>
+            <script>// Need to translate the status code from the CRIS z&apos;Z&apos; code to an EPR status
+// If the translated status code is CA or the original control code is CA
+// need to translate the control code to OC
+// A order comment string will be derived from the original status code later
+// to be output as an order comment.  
+
+try {
+
+	// MRD 17/05/2011 Translate status code and order control code
+	var controlcode = msg[&apos;ORC&apos;][&apos;ORC.1&apos;][&apos;ORC.1.1&apos;].toString();
+	var statuscode = msg[&apos;ORC&apos;][&apos;ORC.5&apos;][&apos;ORC.5.1&apos;].toString();
+	var newStatusCode = &quot;&quot;;
+
+    // translate status code from CRIS to EPR
+//	newStatusCode = translateWithLogging(translator, 
+//                                          &quot;STATUS-CODE&quot;,
+//                                          statuscode).toString();
+	// MRD 27/06/2011 : Use code template wrapper
+    newStatusCode = translateAndLog(translator, 
+                                    &quot;STATUS-CODE&quot;,
+                                    statuscode,
+									&quot;ORC.5.1&quot;).toString();
+	// deal with the control code	
+	// make sure cancelations have the correct control code
+	if (newStatusCode == &quot;CA&quot; ) {
+		tmp[&apos;ORC&apos;][&apos;ORC.1&apos;] = &quot;OC&quot;;
+	}
+	// deal with send number pattern
+    // Change NW to SN for send number (reflex) order pattern
+	else if (msgevent == &quot;O19&quot; &amp;&amp; controlcode == &quot;NW&quot; ) {
+		tmp[&apos;ORC&apos;][&apos;ORC.1&apos;] = &quot;SN&quot;;
+		// MRD 13/09/11 Override SC status if sent by RIS
+		if(statuscode == &quot;SC&quot;) {	
+			newStatusCode = &quot;EXAMSTA&quot;;
+		}
+	}
+	// output order control code
+	else tmp[&apos;ORC&apos;][&apos;ORC.1&apos;] = controlcode;
+
+	// output new order status code
+	tmp[&apos;ORC&apos;][&apos;ORC.5&apos;] = newStatusCode;
+
+	// Pass the placer order number
+	tmp[&apos;ORC&apos;][&apos;ORC.2&apos;] = msg[&apos;ORC&apos;][&apos;ORC.2&apos;];
+
+	// Pass the filler order number
+	tmp[&apos;ORC&apos;][&apos;ORC.3&apos;] = msg[&apos;ORC&apos;][&apos;ORC.3&apos;];
+
+	// Ensure filler order number is unique within the domain (BT principles)
+	tmp[&apos;ORC&apos;][&apos;ORC.3&apos;][&apos;ORC.3.1&apos;] = msg[&apos;ORC&apos;][&apos;ORC.3&apos;][&apos;ORC.3.1&apos;].toString();
+
+	// Pass date/time of transaction
+	tmp[&apos;ORC&apos;][&apos;ORC.9&apos;] = msg[&apos;ORC&apos;][&apos;ORC.9&apos;][&apos;ORC.9.1&apos;].toString();
+
+	// Copy original CM ordering provider code 
+	tmp[&apos;ORC&apos;][&apos;ORC.12&apos;][&apos;ORC.12.1&apos;] = msg[&apos;OBR&apos;][&apos;OBR.18&apos;][&apos;OBR.18.1&apos;].toString();
+	
+}
+
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( ORC ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// Need to translate the status code from the CRIS z&apos;Z&apos; code to an EPR status
+// If the translated status code is CA or the original control code is CA
+// need to translate the control code to OC
+// A order comment string will be derived from the original status code later
+// to be output as an order comment.  
+
+try {
+
+	// MRD 17/05/2011 Translate status code and order control code
+	var controlcode = msg[&apos;ORC&apos;][&apos;ORC.1&apos;][&apos;ORC.1.1&apos;].toString();
+	var statuscode = msg[&apos;ORC&apos;][&apos;ORC.5&apos;][&apos;ORC.5.1&apos;].toString();
+	var newStatusCode = &quot;&quot;;
+
+    // translate status code from CRIS to EPR
+//	newStatusCode = translateWithLogging(translator, 
+//                                          &quot;STATUS-CODE&quot;,
+//                                          statuscode).toString();
+	// MRD 27/06/2011 : Use code template wrapper
+    newStatusCode = translateAndLog(translator, 
+                                    &quot;STATUS-CODE&quot;,
+                                    statuscode,
+									&quot;ORC.5.1&quot;).toString();
+	// deal with the control code	
+	// make sure cancelations have the correct control code
+	if (newStatusCode == &quot;CA&quot; ) {
+		tmp[&apos;ORC&apos;][&apos;ORC.1&apos;] = &quot;OC&quot;;
+	}
+	// deal with send number pattern
+    // Change NW to SN for send number (reflex) order pattern
+	else if (msgevent == &quot;O19&quot; &amp;&amp; controlcode == &quot;NW&quot; ) {
+		tmp[&apos;ORC&apos;][&apos;ORC.1&apos;] = &quot;SN&quot;;
+		// MRD 13/09/11 Override SC status if sent by RIS
+		if(statuscode == &quot;SC&quot;) {	
+			newStatusCode = &quot;EXAMSTA&quot;;
+		}
+	}
+	// output order control code
+	else tmp[&apos;ORC&apos;][&apos;ORC.1&apos;] = controlcode;
+
+	// output new order status code
+	tmp[&apos;ORC&apos;][&apos;ORC.5&apos;] = newStatusCode;
+
+	// Pass the placer order number
+	tmp[&apos;ORC&apos;][&apos;ORC.2&apos;] = msg[&apos;ORC&apos;][&apos;ORC.2&apos;];
+
+	// Pass the filler order number
+	tmp[&apos;ORC&apos;][&apos;ORC.3&apos;] = msg[&apos;ORC&apos;][&apos;ORC.3&apos;];
+
+	// Ensure filler order number is unique within the domain (BT principles)
+	tmp[&apos;ORC&apos;][&apos;ORC.3&apos;][&apos;ORC.3.1&apos;] = msg[&apos;ORC&apos;][&apos;ORC.3&apos;][&apos;ORC.3.1&apos;].toString();
+
+	// Pass date/time of transaction
+	tmp[&apos;ORC&apos;][&apos;ORC.9&apos;] = msg[&apos;ORC&apos;][&apos;ORC.9&apos;][&apos;ORC.9.1&apos;].toString();
+
+	// Copy original CM ordering provider code 
+	tmp[&apos;ORC&apos;][&apos;ORC.12&apos;][&apos;ORC.12.1&apos;] = msg[&apos;OBR&apos;][&apos;OBR.18&apos;][&apos;OBR.18.1&apos;].toString();
+	
+}
+
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( ORC ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>5</sequenceNumber>
+            <name>OBR</name>
+            <script>try {
+
+	// Pass Placer Order Number
+	tmp[&apos;OBR&apos;][&apos;OBR.2&apos;] = msg[&apos;ORC&apos;][&apos;ORC.2&apos;][&apos;ORC.2.1&apos;].toString();
+
+	// Pass Filler Order Number
+	tmp[&apos;OBR&apos;][&apos;OBR.3&apos;] = msg[&apos;ORC&apos;][&apos;ORC.3&apos;];
+
+	// Pass service ID
+	// MRD 17/05/2011 Must translate the CRIS order code to the EPR order code
+	// tmp[&apos;OBR&apos;][&apos;OBR.4&apos;] = msg[&apos;OBR&apos;][&apos;OBR.4&apos;];
+	//var tranResult = translateWithLoggingDefault(translator, 
+    //                     &quot;EXAM-CODE&quot;,
+    //                     msg[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.1&apos;].toString(),
+	//					 &quot;XZZZZ&quot;);
+	// MRD 27/06/2011 : Use code template wrapper
+	var tranResult = translateAndLogWithDefault(translator, 
+                         &quot;EXAM-CODE&quot;,
+                         msg[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.1&apos;].toString(),
+						 &quot;ZZDEF&quot;,
+						 &quot;Default value&quot;,
+						 &quot;OBR.4.1&quot;);
+
+	tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.1&apos;] = tranResult.getToCode();
+	tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.2&apos;] = tranResult.getToValue();
+
+	// Copy observation data time from ORC.7.4
+	// Temporary to cater for CRIS sending out stupid dates
+	if ( msg[&apos;ORC&apos;][&apos;ORC.7&apos;][&apos;ORC.7.4&apos;].toString().substr(0,4) == &quot;2099&quot; ) { 
+		tmp[&apos;OBR&apos;][&apos;OBR.7&apos;] = DateUtil.getCurrentDate(&quot;yyyyMMddHHmm&quot;);
+	}
+	else {
+		tmp[&apos;OBR&apos;][&apos;OBR.7&apos;] = msg[&apos;ORC&apos;][&apos;ORC.7&apos;][&apos;ORC.7.4&apos;].toString();
+	}
+
+	// Copy ordering provider code
+	tmp[&apos;OBR&apos;][&apos;OBR.16&apos;] = msg[&apos;OBR&apos;][&apos;OBR.18&apos;][&apos;OBR.18.1&apos;].toString();
+
+	// Copy filler field 2 - needed for web PACS?
+	tmp[&apos;OBR&apos;][&apos;OBR.21&apos;] = msg[&apos;OBR&apos;][&apos;OBR.21&apos;][&apos;OBR.21.1&apos;].toString();
+
+	// MRD 16/05/2011 Copy start date/time
+	// Temporary to cater for CRIS sending out stupid dates
+	if ( msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.4&apos;].toString().substr(0,4) == &quot;2099&quot; ) { 
+		tmp[&apos;OBR&apos;][&apos;OBR.27&apos;][&apos;OBR.27.4&apos;] = DateUtil.getCurrentDate(&quot;yyyyMMddHHmm&quot;);
+	}
+	else {
+		tmp[&apos;OBR&apos;][&apos;OBR.27&apos;][&apos;OBR.27.4&apos;] = msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.4&apos;].toString();
+	}
+
+    // MRD 16/05/2011 Translate priority
+	//tmp[&apos;OBR&apos;][&apos;OBR.27&apos;][&apos;OBR.27.6&apos;] = translateWithLogging(translator, 
+    //                                   &quot;PRIORITY&quot;,
+    //                                   msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.6&apos;].toString()).toString();
+	// MRD 27/06/2011 : Use code template wrapper
+	tmp[&apos;OBR&apos;][&apos;OBR.27&apos;][&apos;OBR.27.6&apos;] = translateAndLog(translator, 
+                                       &quot;PRIORITY&quot;,
+                                       msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.6&apos;].toString(),
+									   &quot;OBR.27.6&quot;).toString();
+
+	// Copy scheduled date/time from OBR.27
+	// Temporary to cater for CRIS sending out stupid dates
+	if (msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.4&apos;].toString().substr(0,4) == &quot;2099&quot; ) { 
+		tmp[&apos;OBR&apos;][&apos;OBR.36&apos;] = DateUtil.getCurrentDate(&quot;yyyyMMddHHmm&quot;);
+	}
+	else {
+		tmp[&apos;OBR&apos;][&apos;OBR.36&apos;] = msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.4&apos;].toString();
+	}
+}
+
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( OBR ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>try {
+
+	// Pass Placer Order Number
+	tmp[&apos;OBR&apos;][&apos;OBR.2&apos;] = msg[&apos;ORC&apos;][&apos;ORC.2&apos;][&apos;ORC.2.1&apos;].toString();
+
+	// Pass Filler Order Number
+	tmp[&apos;OBR&apos;][&apos;OBR.3&apos;] = msg[&apos;ORC&apos;][&apos;ORC.3&apos;];
+
+	// Pass service ID
+	// MRD 17/05/2011 Must translate the CRIS order code to the EPR order code
+	// tmp[&apos;OBR&apos;][&apos;OBR.4&apos;] = msg[&apos;OBR&apos;][&apos;OBR.4&apos;];
+	//var tranResult = translateWithLoggingDefault(translator, 
+    //                     &quot;EXAM-CODE&quot;,
+    //                     msg[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.1&apos;].toString(),
+	//					 &quot;XZZZZ&quot;);
+	// MRD 27/06/2011 : Use code template wrapper
+	var tranResult = translateAndLogWithDefault(translator, 
+                         &quot;EXAM-CODE&quot;,
+                         msg[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.1&apos;].toString(),
+						 &quot;ZZDEF&quot;,
+						 &quot;Default value&quot;,
+						 &quot;OBR.4.1&quot;);
+
+	tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.1&apos;] = tranResult.getToCode();
+	tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.2&apos;] = tranResult.getToValue();
+
+	// Copy observation data time from ORC.7.4
+	// Temporary to cater for CRIS sending out stupid dates
+	if ( msg[&apos;ORC&apos;][&apos;ORC.7&apos;][&apos;ORC.7.4&apos;].toString().substr(0,4) == &quot;2099&quot; ) { 
+		tmp[&apos;OBR&apos;][&apos;OBR.7&apos;] = DateUtil.getCurrentDate(&quot;yyyyMMddHHmm&quot;);
+	}
+	else {
+		tmp[&apos;OBR&apos;][&apos;OBR.7&apos;] = msg[&apos;ORC&apos;][&apos;ORC.7&apos;][&apos;ORC.7.4&apos;].toString();
+	}
+
+	// Copy ordering provider code
+	tmp[&apos;OBR&apos;][&apos;OBR.16&apos;] = msg[&apos;OBR&apos;][&apos;OBR.18&apos;][&apos;OBR.18.1&apos;].toString();
+
+	// Copy filler field 2 - needed for web PACS?
+	tmp[&apos;OBR&apos;][&apos;OBR.21&apos;] = msg[&apos;OBR&apos;][&apos;OBR.21&apos;][&apos;OBR.21.1&apos;].toString();
+
+	// MRD 16/05/2011 Copy start date/time
+	// Temporary to cater for CRIS sending out stupid dates
+	if ( msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.4&apos;].toString().substr(0,4) == &quot;2099&quot; ) { 
+		tmp[&apos;OBR&apos;][&apos;OBR.27&apos;][&apos;OBR.27.4&apos;] = DateUtil.getCurrentDate(&quot;yyyyMMddHHmm&quot;);
+	}
+	else {
+		tmp[&apos;OBR&apos;][&apos;OBR.27&apos;][&apos;OBR.27.4&apos;] = msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.4&apos;].toString();
+	}
+
+    // MRD 16/05/2011 Translate priority
+	//tmp[&apos;OBR&apos;][&apos;OBR.27&apos;][&apos;OBR.27.6&apos;] = translateWithLogging(translator, 
+    //                                   &quot;PRIORITY&quot;,
+    //                                   msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.6&apos;].toString()).toString();
+	// MRD 27/06/2011 : Use code template wrapper
+	tmp[&apos;OBR&apos;][&apos;OBR.27&apos;][&apos;OBR.27.6&apos;] = translateAndLog(translator, 
+                                       &quot;PRIORITY&quot;,
+                                       msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.6&apos;].toString(),
+									   &quot;OBR.27.6&quot;).toString();
+
+	// Copy scheduled date/time from OBR.27
+	// Temporary to cater for CRIS sending out stupid dates
+	if (msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.4&apos;].toString().substr(0,4) == &quot;2099&quot; ) { 
+		tmp[&apos;OBR&apos;][&apos;OBR.36&apos;] = DateUtil.getCurrentDate(&quot;yyyyMMddHHmm&quot;);
+	}
+	else {
+		tmp[&apos;OBR&apos;][&apos;OBR.36&apos;] = msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.4&apos;].toString();
+	}
+}
+
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( OBR ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>6</sequenceNumber>
+            <name>NTE</name>
+            <script>// Need to get a order comment for the status passed in from CRIS
+// Output in NTE segments to qualify the departmental status 
+// when displayed in Millennium.
+// Send back scheduled date in the comment if the status code 
+// indicates that the order has been booked on CRIS 
+
+try {
+	
+	// MRD: Do not process status comment NTE if reflex (NW) message
+	if(msg[&apos;ORC&apos;][&apos;ORC.1&apos;][&apos;ORC.1.1&apos;].toString() != &quot;NW&quot; ) {
+		
+		// MRD: 19/05/11 Use translator to get the comment for the recieved status code
+    	var statusReason =  translateWithDefault(translator, 
+                                        &quot;STATUS-COMMENT&quot;,
+                                         msg[&apos;ORC&apos;][&apos;ORC.5&apos;][&apos;ORC.5.1&apos;].toString(),
+										 &quot;Order Status Updated&quot;,
+										 &quot;ORC.5.1&quot;).toString();		
+	 
+		tmp[&apos;NTE&apos;][&apos;NTE.3&apos;][&apos;NTE.3.1&apos;] = statusReason;
+		tmp[&apos;ORC&apos;][&apos;ORC.16&apos;][&apos;ORC.16.2&apos;] = statusReason;
+	
+		// MRD: 19/05/11 If outbound status is scheduled (derived in 
+		if ( tmp[&apos;ORC&apos;][&apos;ORC.5&apos;].toString() == &quot;EXAMREM&quot; ) {
+	   		tmp[&apos;NTE&apos;][&apos;NTE.3&apos;][&apos;NTE.3.1&apos;] = &quot;Exam Booked For: &quot; + safeDateFormat(&quot;yyyyMMddHHmm&quot;, &quot;HH:mm dd/MM/yyyy&quot;, msg[&apos;ORC&apos;][&apos;ORC.7&apos;][&apos;ORC.7.4&apos;].toString());	
+		}
+	}
+}
+
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( NTE ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// Need to get a order comment for the status passed in from CRIS
+// Output in NTE segments to qualify the departmental status 
+// when displayed in Millennium.
+// Send back scheduled date in the comment if the status code 
+// indicates that the order has been booked on CRIS 
+
+try {
+	
+	// MRD: Do not process status comment NTE if reflex (NW) message
+	if(msg[&apos;ORC&apos;][&apos;ORC.1&apos;][&apos;ORC.1.1&apos;].toString() != &quot;NW&quot; ) {
+		
+		// MRD: 19/05/11 Use translator to get the comment for the recieved status code
+    	var statusReason =  translateWithDefault(translator, 
+                                        &quot;STATUS-COMMENT&quot;,
+                                         msg[&apos;ORC&apos;][&apos;ORC.5&apos;][&apos;ORC.5.1&apos;].toString(),
+										 &quot;Order Status Updated&quot;,
+										 &quot;ORC.5.1&quot;).toString();		
+	 
+		tmp[&apos;NTE&apos;][&apos;NTE.3&apos;][&apos;NTE.3.1&apos;] = statusReason;
+		tmp[&apos;ORC&apos;][&apos;ORC.16&apos;][&apos;ORC.16.2&apos;] = statusReason;
+	
+		// MRD: 19/05/11 If outbound status is scheduled (derived in 
+		if ( tmp[&apos;ORC&apos;][&apos;ORC.5&apos;].toString() == &quot;EXAMREM&quot; ) {
+	   		tmp[&apos;NTE&apos;][&apos;NTE.3&apos;][&apos;NTE.3.1&apos;] = &quot;Exam Booked For: &quot; + safeDateFormat(&quot;yyyyMMddHHmm&quot;, &quot;HH:mm dd/MM/yyyy&quot;, msg[&apos;ORC&apos;][&apos;ORC.7&apos;][&apos;ORC.7.4&apos;].toString());	
+		}
+	}
+}
+
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( NTE ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>7</sequenceNumber>
+            <name>Local Functions</name>
+            <script>//function translateWithLogging(transRef, transSet, value )
+//{
+//	
+//	var tranResult = new Packages.nhs.ohis.si.translator.data.TranslationResult(&quot;&quot;,&quot;&quot;, Packages.nhs.ohis.si.translator.data.TranslationResultEnum.FAIL); 
+//	
+//	if(value.length &gt; 0) {
+//		tranResult = transRef.translate(transSet,value);
+//		
+//		if(tranResult.getOutcome() != Packages.nhs.ohis.si.translator.data.TranslationResultEnum.SUCCESS){
+//			logTranslationError(transSet, 
+//                     			value, 
+//                       			messageObject.getId().toString(),
+//                       			&quot;This is the comment&quot;,
+//                       			&quot;translation_failure_logger&quot;);
+//    	}
+//
+//	}
+//	return tranResult;
+//}
+
+//function translateWithDefault(transRef, transSet, value, defaultCode )
+//{
+//	var tranResult = new Packages.nhs.ohis.si.translator.data.TranslationResult(&quot;&quot;,&quot;&quot;, Packages.nhs.ohis.si.translator.data.TranslationResultEnum.FAIL);
+//
+//	if(value.length &gt; 0) {
+//		tranResult = transRef.translate(transSet,value);
+//		if(tranResult.getOutcome() != Packages.nhs.ohis.si.translator.data.TranslationResultEnum.SUCCESS){
+//			tranResult.setToCode(defaultCode);
+//			tranResult.setToValue(defaultCode);
+//  	}
+//	}
+//	return tranResult;
+//}
+
+//function translateWithLoggingDefault(transRef, transSet, value, defaultCode )
+//{
+//	var tranResult = new Packages.nhs.ohis.si.translator.data.TranslationResult(&quot;&quot;,&quot;&quot;, Packages.nhs.ohis.si.translator.data.TranslationResultEnum.FAIL);
+//     
+//	if(value.length &gt; 0) {                                                                          
+//		tranResult = transRef.translate(transSet,value);
+//		if(tranResult.getOutcome() != Packages.nhs.ohis.si.translator.data.TranslationResultEnum.SUCCESS){
+//			tranResult.setToCode(defaultCode);
+//			tranResult.setToValue(defaultCode);
+//			
+//			logTranslationError(transSet, 
+//                     			value, 
+//                       			messageObject.getId().toString(),
+//                       			&quot;This is the comment&quot;,
+//                       			&quot;translation_failure_logger&quot;);
+//			
+//    	}
+//	}
+//	return tranResult;
+//}
+
+function safeDateFormat(inFormat, outFormat, value)
+{
+	var date = &quot;&quot;;
+
+	if(value.length &gt; 0) 
+		date = DateUtil.convertDate(inFormat, outFormat, value);
+	
+	return date;
+}
+
+function removeSpaces(input)
+{
+	// match 1 or more space characters
+	var regX2 =  new RegExp(&quot;[ ]{1,}&quot;, &quot;g&quot;);
+	
+    return input.replace(regX2, &quot;&quot;);
+
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>//function translateWithLogging(transRef, transSet, value )
+//{
+//	
+//	var tranResult = new Packages.nhs.ohis.si.translator.data.TranslationResult(&quot;&quot;,&quot;&quot;, Packages.nhs.ohis.si.translator.data.TranslationResultEnum.FAIL); 
+//	
+//	if(value.length &gt; 0) {
+//		tranResult = transRef.translate(transSet,value);
+//		
+//		if(tranResult.getOutcome() != Packages.nhs.ohis.si.translator.data.TranslationResultEnum.SUCCESS){
+//			logTranslationError(transSet, 
+//                     			value, 
+//                       			messageObject.getId().toString(),
+//                       			&quot;This is the comment&quot;,
+//                       			&quot;translation_failure_logger&quot;);
+//    	}
+//
+//	}
+//	return tranResult;
+//}
+
+//function translateWithDefault(transRef, transSet, value, defaultCode )
+//{
+//	var tranResult = new Packages.nhs.ohis.si.translator.data.TranslationResult(&quot;&quot;,&quot;&quot;, Packages.nhs.ohis.si.translator.data.TranslationResultEnum.FAIL);
+//
+//	if(value.length &gt; 0) {
+//		tranResult = transRef.translate(transSet,value);
+//		if(tranResult.getOutcome() != Packages.nhs.ohis.si.translator.data.TranslationResultEnum.SUCCESS){
+//			tranResult.setToCode(defaultCode);
+//			tranResult.setToValue(defaultCode);
+//  	}
+//	}
+//	return tranResult;
+//}
+
+//function translateWithLoggingDefault(transRef, transSet, value, defaultCode )
+//{
+//	var tranResult = new Packages.nhs.ohis.si.translator.data.TranslationResult(&quot;&quot;,&quot;&quot;, Packages.nhs.ohis.si.translator.data.TranslationResultEnum.FAIL);
+//     
+//	if(value.length &gt; 0) {                                                                          
+//		tranResult = transRef.translate(transSet,value);
+//		if(tranResult.getOutcome() != Packages.nhs.ohis.si.translator.data.TranslationResultEnum.SUCCESS){
+//			tranResult.setToCode(defaultCode);
+//			tranResult.setToValue(defaultCode);
+//			
+//			logTranslationError(transSet, 
+//                     			value, 
+//                       			messageObject.getId().toString(),
+//                       			&quot;This is the comment&quot;,
+//                       			&quot;translation_failure_logger&quot;);
+//			
+//    	}
+//	}
+//	return tranResult;
+//}
+
+function safeDateFormat(inFormat, outFormat, value)
+{
+	var date = &quot;&quot;;
+
+	if(value.length &gt; 0) 
+		date = DateUtil.convertDate(inFormat, outFormat, value);
+	
+	return date;
+}
+
+function removeSpaces(input)
+{
+	// match 1 or more space characters
+	var regX2 =  new RegExp(&quot;[ ]{1,}&quot;, &quot;g&quot;);
+	
+    return input.replace(regX2, &quot;&quot;);
+
+}</string>
+              </entry>
+            </data>
+          </step>
+        </steps>
+        <inboundTemplate encoding="base64">TVNIfF5+XCZ8UkJGX1RFU1RfUklTfFJCRnxSQkZfVEVTVF9USUV8UkJGfDIwMTEwNTIwMTMwMjM3
+fHxPTUdeTzE5fDIzMzY4ODUzNnxQfDIuNHx8fHx8fHwNUElEfHx8MjQwNF5eXkNSSVNeUEl+MTAw
+NjI3NDZeXl5SQkYwM15NUnx8Qk9TVE9OXkFQUklMfHwxOTYyMDcwNHxGfHx8NiBDQUxJQkFOIE1F
+V1NeSEVBVEhDT1RFXl5XQVJXSUNLXkNWMzQgNkZTfHwwMTkyNjU3ODk0NXx8fHx8fHx8fEF8fHx8
+fHx8IiJ8Tg1QVjF8fHx8fHx8fHx8fHx8fHx8fHxBfDQzODY1Ng1PUkN8U0N8NjIxMTExNHw0MDE0
+XkNSSVN8fFpBVHx8Xl5eMjAxMTA1MjAxMzAyXl41fHwyMDExMDUyMDEzMDJ8UklTVFJBSU58fEMx
+NTI0OTcwXkJVUkdFIFBEfFJCRjAzV0FSREN8fDIwMTEwNTExMDAwMHx8MzAwfFJCRjAzfFJJU1RS
+QUlOfHxeXlJCRjAzDU9CUnx8NjIxMTExNHw0MDE0XkNSSVN8WENIRVNeWFIgQ2hlc3R8fHx8fHx8
+fHx8fHx8fEMxNTI0OTcwfHwzODMzfFJCRjAwMDA0MDE0fHx8Unx8fF5eXjIwMTEwNTIwMTMwMl5e
+NXx8fHx8fHxeMjAxMTA1MjBeMjAxMTA1MjBeXlhSNF5eUkJGMDM=</inboundTemplate>
+        <outboundTemplate encoding="base64">TVNIfF5+XCZ8T1hPTl9USUVfUkFEfE9YT058U0MwNFBST0R8T1hPTnx8fE9STV5PMDF8fFB8Mi4z
+DVBJRHx8fHx8Xnx8DVBWMXx8fHx8fHx8fHx8fHx8fHx8fHwNT1JDfHx8fHx8fHx8fHx8Xl5eXl5e
+Xl5EUk5CUl5QUlNOTHx8fHxeDU9CUnx8fHxefHx8fHx8fHx8fHx8fHx8fHx8fHx8fHxeXl5eXnx8
+fHx8fHx8fApOVEV8MXxPRFJDTU5UfAoK</outboundTemplate>
+        <inboundProtocol>HL7V2</inboundProtocol>
+        <outboundProtocol>HL7V2</outboundProtocol>
+        <inboundProperties>
+          <property name="convertLFtoCR">true</property>
+          <property name="handleRepetitions">true</property>
+          <property name="handleSubcomponents">true</property>
+          <property name="stripNamespaces">true</property>
+          <property name="useStrictParser">false</property>
+          <property name="useStrictValidation">false</property>
+        </inboundProperties>
+        <outboundProperties>
+          <property name="convertLFtoCR">true</property>
+          <property name="handleRepetitions">true</property>
+          <property name="handleSubcomponents">true</property>
+          <property name="stripNamespaces">true</property>
+          <property name="useStrictParser">false</property>
+          <property name="useStrictValidation">false</property>
+        </outboundProperties>
+      </transformer>
+      <filter>
+        <rules>
+          <rule>
+            <sequenceNumber>0</sequenceNumber>
+            <name>DuplicateFilter</name>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>var dupStatus = getDuplicateStatus(); 
+return (dupStatus == &apos;NODUP&apos;|| dupStatus == &apos;NOCHK&apos;) ;</string>
+              </entry>
+            </data>
+            <type>JavaScript</type>
+            <script>var dupStatus = getDuplicateStatus(); 
+return (dupStatus == &apos;NODUP&apos;|| dupStatus == &apos;NOCHK&apos;) ;</script>
+            <operator>NONE</operator>
+          </rule>
+          <rule>
+            <sequenceNumber>1</sequenceNumber>
+            <name>Allow OMG</name>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>return (msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString() == &quot;OMG&quot;);</string>
+              </entry>
+            </data>
+            <type>JavaScript</type>
+            <script>return (msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString() == &quot;OMG&quot;);</script>
+            <operator>AND</operator>
+          </rule>
+          <rule>
+            <sequenceNumber>2</sequenceNumber>
+            <name>Only pass if has placer order number</name>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// suppress ORM messages originating from direct referral orders
+return ((msg[&apos;ORC&apos;][&apos;ORC.2&apos;][&apos;ORC.2.1&apos;].toString().length &gt; 0) || (msg[&apos;ORC&apos;][&apos;ORC.1&apos;][&apos;ORC.1.1&apos;].toString() == &quot;NW&quot;));</string>
+              </entry>
+            </data>
+            <type>JavaScript</type>
+            <script>// suppress ORM messages originating from direct referral orders
+return ((msg[&apos;ORC&apos;][&apos;ORC.2&apos;][&apos;ORC.2.1&apos;].toString().length &gt; 0) || (msg[&apos;ORC&apos;][&apos;ORC.1&apos;][&apos;ORC.1.1&apos;].toString() == &quot;NW&quot;));</script>
+            <operator>AND</operator>
+          </rule>
+        </rules>
+      </filter>
+      <transportName>LLP Sender</transportName>
+      <mode>DESTINATION</mode>
+      <enabled>true</enabled>
+      <version>2.2.1.5861</version>
+    </connector>
+  </destinationConnectors>
+  <properties>
+    <property name="clearGlobalChannelMap">true</property>
+    <property name="dont_store_filtered">true</property>
+    <property name="encryptData">false</property>
+    <property name="error_messages_only">false</property>
+    <property name="initialState">started</property>
+    <property name="max_message_age">7</property>
+    <property name="store_messages">true</property>
+    <property name="synchronous">true</property>
+    <property name="transactional">false</property>
+  </properties>
+  <preprocessingScript>// Modify the message variable below to pre process data
+return message;</preprocessingScript>
+  <postprocessingScript>// This script executes once after a message has been processed
+try {
+	// update the subscription for the current message using the saved
+    // subscription number and the reponse outcome 
+    var subsNumber = getSubscriptionNumber();
+
+	//08-10-10 HS
+	//Hardcoded channel to get response code from destination named &apos;destination&apos;. This can
+	//be modified in the cloned channel, but the developer has to be aware that they MUST
+	//modifiy the string below to reflect that change. Advisory - do not change. 
+    var resString = getResponseCode(&quot;OMG-destination&quot;);
+
+	resString = Packages.nhs.ohis.si.generic.StringHelper.removeWhitespaces(resString);
+	
+	Packages.nhs.ohis.si.queueing.MessageQueuer.setSubscriptionOutcome(getQueueDBConnection(),subsNumber, resString);//if this portion of code is reached then the message has been sent successfully 
+	
+	//if this portion of code is reached then the message has been sent successfully 
+	if (resString==&apos;AA&apos;) {
+		if(getAttemptRetryFlag() == true)
+		{
+			//09-AUG HS+JC - Using sendAlert code template
+			var alertSubject = &apos;Connection re-established&apos;;
+			var alertMessage = &apos;The connection with EPR has been re-established.&apos;;
+			sendAlert(alertSubject, alertMessage);
+			setAttemptRetryFlag(false);	
+		}
+	}
+
+	//10-NOV MD &amp; HS
+	//Code to set lastSubMsgNbr is set when the message has been sent, filtered or queued (on Mirth 
+	//queue). If code is not implemented like this then fact that message is filtered or queued will
+	//not be respected and subscribing rate will still take place at max rate
+	var response = responseMap.get(&quot;OMG-destination&quot;);	
+   	if(response != null) {
+		var status = response.getStatus();
+		if(status == &apos;SUCCESS&apos; || status == &apos;FILTERED&apos; || status == &apos;QUEUED&apos;)
+   		{
+			setLastSubMsgNbr(getQueueID(), getMsgNumber());
+   		}
+	}
+	else
+	{
+		var alertSubject = &apos;Check Channel Destination name&apos;;
+		var alertMessage = &apos;The destination name on this subscribing channel is not set to the default name of \&apos;destination\&apos;.\r\n&apos;;
+		alertMessage += &apos;Please check and amend in post-processor code.\r\n&apos;;
+
+		sendAlert(alertSubject, alertMessage);
+	}
+}
+catch(err) 
+{
+	if(containsString(err.message.toString(),&quot;20988&quot;)){
+		// trigger retry alert here 
+		if (getAttemptRetryFlag() == false)
+		{
+/*
+			alerts.sendAlert(&apos;WARN - Message retry count exceeded. Will continue to retry and alert only when connectivity with the EPR is re-established&apos;);
+			setAttemptRetryFlag(true);
+			logger.error(getChannelName() + &quot;: Retry exceeded error caught. &quot; + err.message);
+*/
+			//26-AUG-2011 HS
+			//Normalising the email alert message that will be returned when the connection to 
+			//EPR is lost to match other channels
+			var alertSubject = &apos;Connection lost&apos;;
+			var alertMessage = &apos;The connection with EPR has been lost.\r\n&apos;;
+			alertMessage += &apos;The TIE will attempt to automatically recover the connection with this system and will alert only when connectivity is re-established.\r\n&apos;;
+			alertMessage += &apos;If connectivity is not achieved within 1 hour of receiving this e-mail please contact the EPR helpdesk.\r\n&apos;;
+			sendAlert(alertSubject, alertMessage);
+			setAttemptRetryFlag(true);	
+		}
+	}
+	else {
+		logger.error(&quot;Postprocessor-&quot; + err.message);
+    	stopChannel(channelId);
+	}
+}
+finally {
+	// clear the subscription number so that the will get the next message in the queue  
+	setSubscriptionNumber(&quot;&quot;);
+}
+
+return;</postprocessingScript>
+  <deployScript>try
+{	
+	/*
+		30-10-2010 HS 
+		Hardcode the name of the channel
+	*/
+	globalMap.put(channelId,&apos;Q_RIS_ORM_EPR&apos;);
+
+	setQueueDBConnection();
+
+	//Initialize translator	
+	var translator = Packages.nhs.ohis.si.translator.Translator();
+	translator.addChannelTranslationSets(channelName, getQueueDBConnection());
+	
+     setTranslator(channelId, translator);	
+    //Translator logic end
+	return;
+}
+catch (e)
+{
+	logger.error(&quot;An exception occurred in the Deploy script of channel &quot; + channelName + &quot; . Error name: &quot; + e.name + &quot;. Error message: &quot; + e.message);
+	stopChannel(channelId);
+}</deployScript>
+  <shutdownScript>	var translator = getTranslator();
+	if (translator != null)
+	{
+		translator.closeTranslationSets();
+		logger.info(&quot;Successfully excuted shutdown script for &quot; + getChannelName());
+	}
+	else
+	{
+		logger.error(&quot;A translator could not be found for this channel: &quot; + getChannelName());
+	}
+
+	closeQueueDbConnection();
+
+	return;</shutdownScript>
+</channel>

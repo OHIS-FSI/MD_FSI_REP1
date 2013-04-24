@@ -1,0 +1,2754 @@
+<list>
+  <codeTemplate>
+    <id>741cd96b-7f18-4569-be02-5f3f9f7172a5</id>
+    <name>SQ-getSQOrderByOrderNumber</name>
+    <tooltip>Gets the Sunquest order from the SQ_ORDER table by the given order ID</tooltip>
+    <code>
+function getSQOrderByOrderNumber	(cmOrderNumber)
+{
+	try
+	{
+		var driverClass = &quot;oracle.jdbc.driver.OracleDriver&quot;;
+
+/*		
+		var dbConn = DatabaseConnectionFactory.createDatabaseConnection(driverClass, getQdbUrl(),getQdbUser(),getQdbPwd());
+		//var conn = getQueueDBConnection();
+/*
+		var SQL =  &apos;BEGIN TIEUSER.SQ_ORDER_EXTENSION.GET_ORDER_BY_ORDER_NUM(?,?); END;&apos;;
+		
+		var params = new Packages.java.util.ArrayList();
+		params.add(cmOrderNumber);
+		var rs = dbConn.executeCachedQuery(SQL, params);
+
+		var result = spStmt.getObject(&quot;sqOrder&quot;);
+		logger.error(result.toString());
+*/
+		var dbConn = getQueueDBConnection();	
+		
+		var sqlStoredProc = &quot;exec TIEUSER.SQ_ORDER_EXTENSION.GET_ORDER_BY_ORDER_NUM(?)&quot;;
+		var params = new Packages.java.util.ArrayList();
+	
+		params.add(cmOrderNumber);
+
+		var rs = dbConn.executeCachedQuery(sqlStoredProc, params);
+		rs.next();
+		result = rs.getObject(&quot;1&quot;);
+
+		logger.error(result.CM_MRN);
+
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template SQ-putSQOrderDetails: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);		
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>2</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>fa533072-86a9-4fe8-b4a4-2f0adaa5f31c</id>
+    <name>SQ-getAccessionNumber</name>
+    <tooltip>Gets the Sunquest accession number</tooltip>
+    <code>function getSunquestAccessionNumber()
+{
+	try
+	{
+		var conn = getQueueDBConnection();
+
+		var SQL =  &apos;exec TIEUSER.SQ_ORDER_EXTENSION.MAKE_ACN&apos;;
+		
+		var rs = conn.executeQuery(SQL);
+
+		if(rs.next())
+		{
+			result = rs.getString(1);
+			
+		}
+
+		return result;
+
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template SQ-getSunquestAccessionNumber: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);		
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>2</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>ef3fbd83-d4c9-437e-90b8-67e8af00893b</id>
+    <name>DBQ-setPromoter</name>
+    <tooltip>Sets the promoter object for a particular channel.</tooltip>
+    <code>function setPromoter(promoter) {
+	
+	try
+	{
+		/*
+			25-OCT-2011 HS	Created
+			Using channelGlobalMap which was not available to us when developing other Queueing object
+			storage/retrieval code templates.
+		*/
+		globalChannelMap.put(&quot;promoter&quot;, promoter);
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template DBQ-setPromoter: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>1</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>7eb2046e-b5f4-4410-a404-14584b841ce8</id>
+    <name>DBQ-getPromoter</name>
+    <tooltip>Gets the promoter that has been set for a particular channel</tooltip>
+    <code>function getPromoter() {
+	
+	try
+	{
+		/*
+			25-OCT-2011 HS	Created
+			Using channelGlobalMap which was not available to us when developing other Queueing object
+			storage/retrieval code templates.
+		*/
+		return globalChannelMap.get(&quot;promoter&quot;);
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template DBQ-getPromoter: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>1</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>3a2521d0-eb4f-45a9-bda1-d7de49d8dcf6</id>
+    <name>expandXmlNodeLocation</name>
+    <tooltip>Expands the Mirth XML notation</tooltip>
+    <code>// modify function_name and parameters as you wish.
+// one function per template is recommended. i.e.) create a new code template for each new function.
+function expandXmlNodeLocation(node) {
+	
+	
+	var result = &quot;&quot;;
+	var split = node.split(&quot;.&quot;); //beware escape characters may be handled differently between Java and JScript
+
+	var i = 0;
+	
+	while (i &lt; split.length)
+	{
+		result += &quot;/&quot;;
+		
+		for (j = 0; j &lt;= i ; j++)
+		{
+			result += split[j];
+
+			if (j &lt; i)
+			{
+				result += &quot;.&quot;;
+			}
+		}
+
+		i++;
+	}
+	
+	return result.toUpperCase();
+
+	
+
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>5f178cf7-51bf-4c0b-9f0d-2a48b7d68e71</id>
+    <name>TRN-getTranslator</name>
+    <tooltip>Get the translator for the channle in context from the global map</tooltip>
+    <code>
+function getTranslator() {
+	try
+	{
+		return globalMap.get(getChannelName() + &quot;_translator&quot;);			
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template TRN-getTranslator: &quot; + err.message;
+		logger.error(errMsg);
+		throw new error(ErrMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>47b21dbc-caee-4b33-a383-a29bb81e1f1a</id>
+    <name>extractPid</name>
+    <tooltip>Extract patient ID  from PID.3 sequence given PID.3, assigner code and id type code</tooltip>
+    <code>
+function extractPid(pid3, assigner_code, type_code) {
+	var pid = &quot;&quot;;
+	var pid3count = pid3.length();
+
+	for(var index = 0; index &lt; pid3count; index++)
+	{
+		if(pid3[&apos;PID.3.4&apos;][index].toString() == assigner_code &amp;&amp; pid3[&apos;PID.3.5&apos;][index].toString() == type_code) 
+		{
+			pid = pid3[&apos;PID.3.1&apos;][index].toString();
+			break
+		}
+
+	}
+	return pid;
+}</code>
+    <type>FUNCTION</type>
+    <scope>3</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>9b10f78a-185f-4da9-89b1-c52f212ef80b</id>
+    <name>DBQ-setAttemptRetryFlag</name>
+    <tooltip>Sets the retry attempt flag for the channel in context</tooltip>
+    <code>function setAttemptRetryFlag(retryAttemptFlag) {
+	try
+	{
+		//globalMap.put(channelId.toString() + &quot;-attemptRetry&quot;, retryAttemptFlag);
+		globalChannelMap.put(&quot;attemptRetry&quot;, retryAttemptFlag);
+		return;		
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template DBQ-setAttemptRetryFlag: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>1</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>4568eef7-75d7-4012-8127-e418bf3c82ba</id>
+    <name>DBQ-getAttemptRetryFlag</name>
+    <tooltip>Gets the retry attempt flag for the channel in context.</tooltip>
+    <code>function getAttemptRetryFlag() {
+	try
+	{		
+//		return globalMap.get(channelId.toString() + &quot;-attemptRetry&quot;);
+		return globalChannelMap.get(&quot;attemptRetry&quot;);
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template DBQ-getAttemptRetryFlag: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);		
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>1</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>1cfbb336-92c9-43a7-9821-3fd4ef2ee71c</id>
+    <name>TRN-TranslateAndLog</name>
+    <tooltip>Wrapper for translator with logging</tooltip>
+    <code>function translateAndLog(translator, transSetName, fromCode, logComment)
+{
+	try {
+		
+		var	tranResult = translator.translate(transSetName,fromCode);
+		
+		if(	tranResult != null) {
+			// log translation failure, do not log NO_FROM_CODE failure
+			if(tranResult.getOutcome() != Packages.nhs.ohis.si.translator.data.TranslationResultEnum.SUCCESS
+           		&amp;&amp; tranResult.getOutcome() != Packages.nhs.ohis.si.translator.data.TranslationResultEnum.NO_FROM_CODE){
+				logTranslationError(transSetName, 
+                   			tranResult, 
+                   			messageObject.getId().toString(),
+                   			logComment,
+                   			&quot;translation_failure_logger&quot;);
+    		}
+		
+			return tranResult;
+
+		}
+		else throw new Error(&apos;Null returned for translation &apos; + transSetName + &apos;:&apos; + fromCode);
+	}
+	catch(e){
+		var error = &quot;Code template translateAndLog called by channel &quot; + getChannelNameFromID(channelId) + &quot;. Exception &quot; + e.message;
+		logger.error(error);
+		throw new Error(error);	
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>3</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>4b7fb337-22a8-4209-986d-d8a6c46455c1</id>
+    <name>TRN-TranslateWithDefault</name>
+    <tooltip>Translator wrapper returns translation result object poulated with values found from translation set or with default values if no match found. No translation failure logging.</tooltip>
+    <code>function translateWithDefault(translator, transSetName, fromCode, defaultToCode, defaultToValue)
+{
+	try {
+		
+		var	tranResult = translator.translate(transSetName,fromCode);
+
+		// Use default values if translation fails including when fromCode is empty.  
+		if(tranResult.getOutcome() != Packages.nhs.ohis.si.translator.data.TranslationResultEnum.SUCCESS){
+			tranResult.setToCode(defaultToCode);
+			tranResult.setToValue(defaultToValue);	
+    	}
+		
+		return tranResult;
+	}
+	catch(e){
+		var error = &quot;Code template translateWithDefault called by channel &quot; + getChannelNameFromID(channelId) + &quot;. Exception &quot; + e.message;
+		logger.error(error);
+		throw new Error(error);		
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>3</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>7970ba54-3812-4189-89b6-233c82fde573</id>
+    <name>DBQ-getResponseCode</name>
+    <tooltip>Get the response code from message based on channel destination for use in channel postprocessor.</tooltip>
+    <code>function getResponseCode(destinationName) {
+
+
+	var responseCode;
+	try
+	{
+    	var response = responseMap.get(destinationName);
+		var responseMessage = responseMap.get(destinationName).getMessage();
+		
+		//logger.info(&quot;--== Discovering post-proc response from destination: &quot; + destinationName + &quot; ==--&quot;);	
+
+		//split up responseMessage into chunks
+		var splitResponseMsg = responseMessage.split(&apos;:&apos;);
+		
+		//check each chunk to see if it contains HL7 (N)ACK
+		var hl7Found = false;
+	
+		for(var j = 0; j &lt; splitResponseMsg.length; j++)
+		{
+			var responseBody = splitResponseMsg[j];
+			//if responseBody holds HL7 message then 
+			if (responseBody.indexOf(&apos;MSH|&apos;) != -1)
+			{
+				hl7Found = true;
+				//serialize an HL7 object that can be navigated using E4X
+				var xml = new XML (SerializerFactory.getHL7Serializer(false, false).toXML(responseBody));
+                responseCode = xml[&apos;MSA&apos;][&apos;MSA.1&apos;][&apos;MSA.1.1&apos;].toString();
+				break;
+			}
+		}
+
+		if (hl7Found == false)
+		{			
+			responseCode = splitResponseMsg[0];
+		}
+	
+		if(responseCode == null || responseCode == &quot;&quot;) 
+		{
+			throw new Error(&quot;Function getResponseCode unable to extract message response on channel &quot; + getChannelName());
+		} 		
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template DBQ-getResponseCode: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);		
+	}
+	finally
+	{
+		return responseCode;
+	}
+	
+}
+
+</code>
+    <type>FUNCTION</type>
+    <scope>2</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>52d62b10-7229-40b1-9af3-9262279f4a8c</id>
+    <name>DBQ-setDestinationQueueMap</name>
+    <tooltip>Puts the destination queue map for the channel identified by the channelid onto the global map.</tooltip>
+    <code>
+function setDestinationQueueMap(channelID, queueMap) {
+	
+	try
+	{
+		//07-FEB-2011 HS Harmonizing function calls
+		//globalMap.put(getChannelNameFromID(channelID) + &quot;_destinationQueueMap&quot;, queueMap);
+		globalMap.put(getChannelName(channelID) + &quot;_destinationQueueMap&quot;, queueMap);
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template DBQ-setDestinationQueueMap: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>06884837-d98e-445f-a045-51964cdd4f43</id>
+    <name>DBQ-getDestinationQueueMap</name>
+    <tooltip>Gets the destination list for the channel in context from the global map</tooltip>
+    <code>
+function getDestinationQueueMap() {
+	try
+	{
+		return globalMap.get(getChannelName() + &quot;_destinationQueueMap&quot;);
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template DBQ-getDestinationQueueMap: &quot; + err.message;
+		logger.error(errMsg);
+		throw new error(errMsg);
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>2</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>f9da5eaa-4235-4717-a4cf-e9491be950c3</id>
+    <name>DBQ-setDuplicateStatus</name>
+    <tooltip>Sets the duplicate status for a dequed message on the map</tooltip>
+    <code>function setDuplicateStatus(dupStatus) {
+	try
+	{
+		globalMap.put(channelId.toString() + &quot;-duplicateStatus&quot;, dupStatus);
+		return;		
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template DBQ-setDuplicateStatus: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>2</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>89a0f751-ee0f-486b-af79-ff61acc31e7b</id>
+    <name>DBQ-getQueueDBConnection</name>
+    <tooltip>Gets the queue DB connection for this channel.</tooltip>
+    <code>// modify function_name and parameters as you wish.
+// one function per template is recommended. i.e.) create a new code template for each new function.
+function getQueueDBConnection() {
+	try
+	{
+		//07-FEB-2011 HS Harmonizing function calls
+		//return globalMap.get(&quot;QdbConnection_&quot; + getChannelNameFromID(channelId));
+		return globalMap.get(&quot;QdbConnection_&quot; + getChannelName(channelId));
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template DBQ-getQueueDBConnection: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>3508eccb-ea00-4188-a0df-c81200a0668e</id>
+    <name>getChannelNameFromPassedID</name>
+    <tooltip>Get channel name using a passed channel ID</tooltip>
+    <code>
+function getChannelNameFromPassedID(channelID) {
+	
+	return Packages.com.mirth.connect.server.controllers.ChannelController.getInstance().getDeployedChannelById(channelID).getName();
+	//return globalMap.get(channelID);
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>508c60cc-a25b-44fc-aaaf-6b0a00c149bc</id>
+    <name>TRN-setTranslator</name>
+    <tooltip>Puts a translator for the channel in context onto the global map</tooltip>
+    <code>
+function setTranslator(channelID, translator) {
+	try
+	{
+		//07-FEB-2011 HS Harmonizing function calls
+		//globalMap.put(getChannelNameFromID(channelID) + &quot;_translator&quot;, translator);
+		logger.info(&quot;Setting translator on channel: &quot; + getChannelName());
+		globalMap.put(getChannelName() + &quot;_translator&quot;, translator);
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template TRN-setTranslator: &quot; + err.message;
+		logger.error(errMsg);
+		throw new error(ErrMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>c2281dd7-2e9c-4ebb-a03a-b0760f8e6757</id>
+    <name>DBQ-setPromotableCollection</name>
+    <tooltip>Puts the promtable items list for a channel destination onto the global map</tooltip>
+    <code>
+function setPromotableCollection(channelID, promotableCollection) {
+	try
+	{
+		//07-FEB-2011 HS Harmonizing function calls
+		//globalMap.put(getChannelNameFromID(channelID) + &quot;_promotableCollection&quot;, promotableCollection);		
+		globalMap.put(getChannelName(channelID) + &quot;_promotableCollection&quot;, promotableCollection);		
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template DBQ-setPromotableCollection : &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>10480d61-86a8-4082-a573-297a0d3d491c</id>
+    <name>DBQ-getPromotableCollection</name>
+    <tooltip>Gets the list of promotable items list for the channel in context from global map</tooltip>
+    <code>function getPromotableCollection() {
+	try
+	{
+		return globalMap.get(getChannelName() + &quot;_promotableCollection&quot;);
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template DBQ-getPromotableCollection: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>2</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>c71bf50c-c061-4edb-b78a-b6f8dc87c10e</id>
+    <name>DBQ-getLabORMTarget</name>
+    <tooltip>Returns  the appropriate target lab information system for a passed ZCT.6 field</tooltip>
+    <code>/*
+	
+	Called from destination filter in Order-LAB filtering channel. Depending on value held in ZCT.6.1 will route
+	to the relavent laboratory system.
+	
+	Created: ?
+	Modified: 24-Feb-2011
+
+	Currently filtering to the following laboratory systems based on the following collection classes.
+	
+	SYSTEM												COLLECTION CLASS (ZCT.6.1)
+=======================================================================================================	
+	LIMS 												CERVICALLBC
+														CHEMISTRY
+														COAGUL
+														D.CYTOLOGY
+														IMMUNOLOGY
+														HAEMATOLOGY
+														HISTONEURO
+														HISTONOC
+														HISTOORH
+														OHTCCH
+
+	SUNQUEST											MICROBIOLOGY
+														MICROBIOLOGU
+
+	TELEPATH											BLOODBANK
+	
+*/
+
+function getLabORMTarget(zctValue) {
+	try
+	{
+		var zctString = zctValue.toString().toUpperCase();
+		if (zctString == &apos;BLOODBANK&apos;)
+		{
+			return (&apos;TELEPATH&apos;);
+		}
+		else if  (	(zctString == &apos;HISTOORH&apos;) || 
+					(zctString == &apos;CHEMISTRY&apos;) || 
+					(zctString == &apos;COAGUL&apos;) || 
+					(zctString == &apos;HAEMATOLOGY&apos;) ||
+					(zctString == &apos;HISTONEURO&apos;) || 
+					(zctString == &apos;HISTONOC&apos;) || 
+					(zctString == &apos;IMMUNOLOGY&apos;) ||
+					(zctString == &apos;CERVICALLBC&apos;) ||
+					(zctString == &apos;D.CYTOLOGY&apos;) ||
+					(zctString == &apos;OHTCCH&apos;)
+				 ) 
+		{
+			return(&apos;LIMS/CP&apos;);
+		}
+		else if (   (zctString == &apos;MICROBIOLOGY&apos;) ||
+					(zctString == &apos;MICROBIOLOGU&apos;)
+				)
+		{
+			return(&apos;SUNQUEST&apos;);
+		}
+		else
+		{	
+			return null;
+		}
+	}
+	catch (err)
+	{
+			var errMsg = &quot;Error in code template DBQ-getLabORMTarget: &quot; + err.message;
+			logger.error(errMsg);
+			throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>b153d5af-bb4b-4cb8-99d1-f9a8d0c1d098</id>
+    <name>CON-getOrderByAccnNumber</name>
+    <tooltip>Gets the latest order from the specified queue that has the specified accession number</tooltip>
+    <code>/*
+	Gets the latest queued message that resides in the specified queue, that has the 
+	specified accession number.
+
+	This function makes use of the following package and query in the queueing database: 
+	DBQ_ORDER_CONVOY.GET_ORDER_BY_P_ACCNID
+
+	04-MAY-11	Created
+*/
+function getOrderByAccessionNumber(queueID, accnNum) {
+	
+	// MRD 05052011
+	// var result = null;
+	var result = &quot;&quot;;
+	try
+	{
+		// MRD 05052011 Not confident that there is a connection for this channel
+		// var dbConn = getQueueDBConnection();	
+		logger.error(&quot;getOrderByAccessionNumber started&quot;);
+		var driverClass = &quot;oracle.jdbc.driver.OracleDriver&quot;;
+		
+		var dbConn = DatabaseConnectionFactory.createDatabaseConnection(driverClass, jdbcURI,dbUser,dbPass);
+	
+	    // MRD: 05/05/2011 GET_ORDER_BY_P_ACCNID is a function not a procedure
+		// var sqlStoredProc = &quot;exec TIEUSER.DBQ_ORDER_CONVOY.GET_ORDER_BY_P_ACCNID(?,?)&quot;;
+		// var sqlStoredProc = &quot;select TIEUSER.DBQ_ORDER_CONVOY.GET_ORDER_BY_P_ACCNID(?,?) from dual&quot;;
+		// var sqlStoredProc = &quot;select TIEUSER.DBQ_ORDER_CONVOY.GET_ORDER_BY_P_ACCNID(&apos;q0007&apos;,&apos;00000LA20100001132&apos;) from dual&quot;;		
+		
+		var sqlStoredProc = &quot;select qm.published_message from tieuser.queued_message qm where qm.message_number = 16781&quot;;
+		logger.error(sqlStoredProc);
+
+		var params = new Packages.java.util.ArrayList();	
+		params.add(queueID);
+		params.add(accnNum);
+
+		logger.error(&quot;Database conn: &quot; + dbConn.toString());
+		logger.error(&quot;Queue ID: &quot; + queueID.toString());
+		logger.error(&quot;Accession num: &quot; + accnNum.toString());
+
+		//var rs = dbConn.executeCachedQuery(sqlStoredProc, params);
+		var rs = dbConn.executeCachedQuery(sqlStoredProc);
+		logger.error(rs.toString());
+		if(rs.next())
+		{			
+			result = rs.getString(1);
+			logger.error(result);
+		}
+
+		return result;
+		
+		//result = rs.getString(&quot;published_message&quot;);
+
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template CON-getOrderByAccnNumber: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);		
+	}
+}
+// MRD 05052011: Finnaly after error will not execute in javascript	
+/*
+	finally
+	{
+		if (result != null)
+		{
+			logger.error(&quot;logger output -&gt; &quot; + result);
+		}
+		return result;
+	}
+}
+*/</code>
+    <type>FUNCTION</type>
+    <scope>2</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>1e467f8b-ffde-4dac-bf86-0e122151b11b</id>
+    <name>DBQ-getQdbUser</name>
+    <tooltip>Get queue DB connection uername</tooltip>
+    <code>
+function getQdbUser() {
+	
+	try
+	{
+		return globalMap.get(&apos;queueing_user&apos;);
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template DBQ-getQdbUser: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);		
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>9a0188e8-4dab-435f-a770-9c9ee911a803</id>
+    <name>DBQ-shouldPollDB_R2</name>
+    <tooltip>DBQ-shouldPollDB release 2</tooltip>
+    <code>function shouldPollDB_R2(qid, lastSubMsgNum) {	
+	try {
+		var pollDB = false;
+		
+		if (getSubscribeWatchdog() == null)
+		{
+			logger.error(&quot;Subscribe watchdog retrieved from XML was null. Please check....&quot;);
+			setSubscribeWatchdog(30000);
+			
+		}
+		
+		var now = new Date(); // get current date/time		
+		var lastPubMsgNum = getLastPubMsgNbr(qid); // get the last published message number for the queue  
+		var lastDBPoll = getLastDbPoll();	// get last poll datestamp for channel
+
+
+		if ((lastPubMsgNum == null) || (lastSubMsgNum == null || lastSubMsgNum == &quot;0&quot;))
+			pollDB = true;
+
+		if ((now.getTime() - lastDBPoll) &gt; getSubscribeWatchdog())
+			pollDB = true;
+		
+		if(lastPubMsgNum != lastSubMsgNum) 
+			pollDB = true;
+
+		
+		//logger.error(&quot;ShouldPollDB logic: &quot; + pollDB.toString());
+		return pollDB;
+	}
+	catch (err) {
+		var errMsg = &quot;Error in code template shouldPollDB: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);	
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>3</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>64f8c925-86bc-41b7-b260-92396c3f3129</id>
+    <name>CD-setEndPointByEnv</name>
+    <tooltip>Sets the end point ip and port on the globalChannel map</tooltip>
+    <code>    // Use this code  snippet in the channel global deploy script
+    // to save end point information that can be used later to dynamically configure LLP settings
+	// Velocity templates for IP and Port setting using this code will look like
+	// ${destIP} and ${destPort} 
+
+	// Set the source or destination ip and port addresses based on the current appliance environment
+	// get the environment from the global map 
+	var env = new String(globalMap.get(&apos;envtype&apos;));
+	var ip = &apos;?&apos;;
+	var port = &apos;?&apos;;
+
+	env = env.substring(0,3);
+
+	if(env != null) {
+		switch(env) {
+			case &apos;DEV&apos;:
+				ip = &apos;0.0.0.0&apos;;
+				port = &apos;000000&apos;;
+				break;
+			case &apos;TES&apos;:
+				ip = &apos;0.0.0.0&apos;;
+				port = &apos;000000&apos;;
+				break;
+			case &apos;PRO&apos;:
+				ip = &apos;0.0.0.0&apos;;
+				port = &apos;000000&apos;;
+				break;
+			default:
+			    ip = &apos;not set!&apos;;
+				port = &apos;not set!&apos;;
+				break;
+		}
+		globalChannelMap.put(&apos;destIP&apos;,ip);
+		globalChannelMap.put(&apos;destPort&apos;,port);
+	}
+</code>
+    <type>CODE</type>
+    <scope>1</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>7f2d1bf2-5c08-4d7f-9862-a26ff3f2d8be</id>
+    <name>DBQ-setQueueDbConnection</name>
+    <tooltip>Sets the queueing DB connection for a channel</tooltip>
+    <code>
+function setQueueDBConnection() {
+	try
+	{
+		//07-FEB-2011 HS Harmonizing function calls
+		//var channelName = getChannelNameFromID(channelId);
+		var channelName = getChannelName(channelId);
+		logger.info(&quot;Queueing database connection established on &quot; + channelName);
+		var driverClass = &quot;oracle.jdbc.driver.OracleDriver&quot;;
+		var QdbConn = DatabaseConnectionFactory.createConnection(driverClass,getQdbUrl(),getQdbUser(),getQdbPwd());
+		globalMap.put(&quot;QdbConnection_&quot; + channelName , QdbConn);		
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template DBQ-setQueueDBConnection : &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);	
+	}	
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>b9fb58ff-5d96-4758-9dbe-38c1b80d6693</id>
+    <name>String Contains String</name>
+    <tooltip>Determine is string 1 contains string 2</tooltip>
+    <code>// modify function_name and parameters as you wish.
+// one function per template is recommended. i.e.) create a new code template for each new function.
+function containsString(string1,string2) {
+	return (string1.indexOf(string2) &gt; -1 );
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>3b701ec9-58be-4b99-997a-66c013e21795</id>
+    <name>StopChannelGlobal</name>
+    <tooltip></tooltip>
+    <code>// Original stopChannel() template only allows channel to be stopped when it is called from a non global source
+// Modified version that allows the stopChannel() function to be executed from Deploy script
+
+function stopChannelGlobal(channelID) {
+	try {
+    	var channelStatusController = Packages.com.mirth.connect.server.controllers.ChannelStatusController.getInstance();
+		channelStatusController.stopChannel(channelID);
+	
+		logger.error(&quot;Channel &quot; + getChannelName() + &quot; stopped on error.&quot;);
+	}
+	catch (err)
+	{
+		logger.error(&quot;Unable to stop channel &quot; + getChannelName() + &quot;Error:&quot; + err.message);
+	}
+	finally
+	{
+		return;
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>a72cec80-6be8-4321-8ce1-2f2dd1290681</id>
+    <name>getChannelErrors</name>
+    <tooltip>Returns a count of errors logged for a channel idetified by the channel ID</tooltip>
+    <code>function getChannelError(IdChannel){
+
+	var driverClass = &quot;com.mysql.jdbc.Driver&quot;;
+	var connectURL=&quot;jdbc:mysql://localhost:3306/mirthdb&quot;;
+	var username = &quot;root&quot;;
+	var password = &quot;adstock&quot;;
+	var dbConn = null;
+	var errors = -1;
+	
+	try 
+	{
+		var strQuery = &quot;select count(1) as errors from channel_statistics where channel_id=&apos;&quot; + IdChannel + &quot;&apos; and error&gt;0&quot;; 
+		dbConn = DatabaseConnectionFactory.createDatabaseConnection(driverClass,connectURL,username,password);
+		var rs = dbConn.executeCachedQuery(strQuery);
+		dbConn.close();
+		rs.next();
+		errors = rs.getInt(&quot;errors&quot;);
+		//logger.info(&quot;GCE!&quot;);
+	}
+	catch(err)
+	{
+		if(dbConn != null)
+		{
+			dbConn.close();
+		}
+
+		logger.error(&quot;Failed to fetch channel errors for channel ID = &quot; + IDchannel);
+	}
+	
+	dbConn = null;
+	return errors;
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>398a8049-286d-4e21-b395-56b13b645b0d</id>
+    <name>OC Get order by accession number</name>
+    <tooltip>OC Get order by accession number MD</tooltip>
+    <code>
+function getOrderByAccessionNumberMD(queueID, accnNum) {
+	
+	// MRD 05052011
+	// var result = null;
+	var result = &quot;&quot;;
+
+	try
+	{
+		// MRD 05052011 Not confident that there is a connection for this channel
+		// var dbConn = getQueueDBConnection();	
+		logger.error(&quot;getOrderByAccessionNumberMD started&quot;);
+		
+		var driverClass = &quot;oracle.jdbc.driver.OracleDriver&quot;;
+		var dbUrl = &quot;jdbc:oracle:thin:@oxnettie03:1521:tiedev&quot;;
+		var dbUser = &quot;tieuser&quot;;
+		var dbPwd = &quot;devpass&quot;;
+
+		var dbConn = DatabaseConnectionFactory.createConnection(driverClass,dbUrl,dbUser,dbPwd);	
+
+		// var sql = &quot;select TIEUSER.DBQ_ORDER_CONVOY.GET_ORDER_BY_P_ACCNID(&apos;q0007&apos;,&apos;00000LA20100001132&apos;) from dual&quot;;		
+		
+		var sql = &quot;select count(*) from tieuser.queued_message&quot;;
+		logger.error(sql);
+		logger.error(dbConn.toString());
+
+		var rs = dbConn.executeCachedQuery(sql);  
+		
+		//logger.error(rs.toString());
+		//if(rs.next())
+		//{			
+		//	result = rs.getString(1);
+		//	logger.error(result);
+		//}
+		dbConn.close();
+		return result;
+		
+		//result = rs.getString(&quot;published_message&quot;);
+
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template CON-getOrderByAccnNumberMD: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);		
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>2</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>6a1cdfa1-6ddd-48b1-bdc9-492f342c0c52</id>
+    <name>StopChannel</name>
+    <tooltip>Stops a channel identified by a channel ID</tooltip>
+    <code>/*
+NAME: StopChannel
+DATE: 31-8-10
+CREATED BY: MD
+HISTORY
+
+	DATE								DESCRIPTION
+	31-08-10							Created
+
+*/
+function stopChannel(channelID) {
+	
+	try {
+    	var channelStatusController = Packages.com.mirth.connect.server.controllers.ChannelStatusController.getInstance();
+		channelStatusController.stopChannel(channelID);
+	
+		logger.error(&quot;Channel &quot; + getChannelName() + &quot; stopped on error.&quot;);
+	}
+	catch (err)
+	{
+		logger.error(&quot;Unable to stop channel &quot; + getChannelName() + &quot;Error:&quot; + err.message);
+	}
+	finally
+	{
+		return;
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>2</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>9b043062-2e12-4b2a-bfed-efb7fa721444</id>
+    <name>DBQ-setSubscriptionOutcome</name>
+    <tooltip>Update the subscription outcome on the database queue</tooltip>
+    <code>
+function setSubscriptionOutcome(subsNumber, responseString) 
+{
+	try 
+	{
+// 18-OCT-2010 HS
+// Refactored below code that accessed database using JDBC calls from javascript to comply with the rest of the
+// application and perform database calls via Java.
+/*
+		//Oracle connection variables
+		var driverClass = &quot;oracle.jdbc.driver.OracleDriver&quot;;
+		var dbConn = null;	
+   
+		// SQL for prepared statement
+		var sqlUpdateSubs = &quot;BEGIN TIEUSER.DB_DEQUEUE.SET_SUBSCRIPTION_OUTCOME(?,?); END;&quot;;
+
+    	// Set up paramaters in an array list
+	    var params = new Packages.java.util.ArrayList(); 
+	    params.add(subsNumber);
+		params.add(responseString);
+		dbConn = DatabaseConnectionFactory.createDatabaseConnection(driverClass,getQdbUrl(),getQdbUser(),getQdbPwd());
+		dbConn.executeUpdate(sqlUpdateSubs,params);
+*/
+
+		//HS 29-10-10	
+		//Packages.nhs.ohis.si.queueing.MessageQueuer.setSubscriptionOutcome(globalMap.get(&apos;tieConnectionDefinition&apos;),subsNumber, responseString);
+		Packages.nhs.ohis.si.queueing.MessageQueuer.setSubscriptionOutcome(globalMap.get(&quot;QdbConnection_&quot; + getChannelName()),subsNumber, responseString);
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template DBQ-setSubscriptionOutcome: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>2</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>b97bfbd7-5833-4908-ab25-dbe8ec94b691</id>
+    <name>DBQ-routingToLIS</name>
+    <tooltip>DEPRECATED!! Use DBQ-getLabORMTarget instead!!!</tooltip>
+    <code>/*
+	
+	Called from destination filter in Order-LAB filtering channel. Depending on value held in ZCT.6.1 will route
+	to the relavent laboratory system.
+	
+	Created: ?
+	Modified: 24-Feb-2011
+	Deprecated: 24-Feb-2011
+
+	Currently filtering to the following laboratory systems based on the following collection classes.
+	
+	SYSTEM												COLLECTION CLASS (ZCT.6.1)
+=======================================================================================================	
+	LIMS 												CERVICALLBC
+														CHEMISTRY
+														COAGUL
+														D.CYTOLOGY
+														IMMUNOLOGY
+														HAEMATOLOGY
+														HISTONEURO
+														HISTONOC
+														HISTOORH
+														OHTCCH
+
+	SUNQUEST											MICROBIOLOGY
+														MICROBIOLOGU
+
+	TELEPATH											BLOODBANK
+	
+*/
+
+function getLabORMTarget(zctValue) {
+	try
+	{
+		var zctString = zctValue.toString().toUpperCase();
+		if (zctString == &apos;BLOODBANK&apos;)
+		{
+			return (&apos;TELEPATH&apos;);
+		}
+		else if  (	(zctString == &apos;HISTOORH&apos;) || 
+					(zctString == &apos;CHEMISTRY&apos;) || 
+					(zctString == &apos;COAGUL&apos;) || 
+					(zctString == &apos;HAEMATOLOGY&apos;) ||
+					(zctString == &apos;HISTONEURO&apos;) || 
+					(zctString == &apos;HISTONOC&apos;) || 
+					(zctString == &apos;IMMUNOLOGY&apos;) ||
+					(zctString == &apos;CERVICALLBC&apos;) ||
+					(zctString == &apos;D.CYTOLOGY&apos;) ||
+					(zctString == &apos;OHTCCH&apos;)
+				 ) 
+		{
+			return(&apos;LIMS/CP&apos;);
+		}
+		else if (   (zctString == &apos;MICROBIOLOGY&apos;) ||
+					(zctString == &apos;MICROBIOLOGU&apos;)
+				)
+		{
+			return(&apos;SUNQUEST&apos;);
+		}
+		else
+		{	
+			return null;
+		}
+	}
+	catch (err)
+	{
+			var errMsg = &quot;Error in code template DBQ-routingToLIS: &quot; + err.message;
+			logger.error(errMsg);
+			throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>47899e56-c522-4977-9ee1-4f409bcc867f</id>
+    <name>getMessageErrors</name>
+    <tooltip>Returns a count of errors found for a message identified by a message ID</tooltip>
+    <code>function getMessageErrors(idMessage){
+
+	var driverClass = &quot;com.mysql.jdbc.Driver&quot;;
+	var connectURL=&quot;jdbc:mysql://localhost:3306/mirthdb&quot;;
+	var username = &quot;root&quot;;
+	var password = &quot;adstock&quot;;
+	var dbConn = null;
+	var errors = -1;
+	
+	try 
+	{
+		var sql1 = &quot;select count(1) as errors from message pm where pm.id = &apos;&quot;;
+                var sql2 = idMessage + &quot;&apos; and pm.errors is not null&quot; ;
+		dbConn = DatabaseConnectionFactory.createDatabaseConnection(driverClass,connectURL,username,password);
+		var rs = dbConn.executeCachedQuery(sql1 + sql2);
+		dbConn.close();
+		rs.next();
+		errors = rs.getInt(&quot;errors&quot;);
+		//logger.info(&quot;GCE!&quot;);
+	}
+	catch(err)
+	{
+		if(dbConn != null)
+		{
+			dbConn.close();
+		}
+
+		logger.error(&quot;Failed to fetch message errors for message ID = &quot; + idMessage);
+	}
+	
+	dbConn = null;
+	return errors;
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>3bbfbb33-5614-4e47-bf8b-8fb6de966d49</id>
+    <name>SQ-putSQOrderDetails</name>
+    <tooltip>Put Sunquest message in SQ_ORDER table</tooltip>
+    <code>// modify function_name and parameters as you wish.
+// one function per template is recommended. i.e.) create a new code template for each new function.
+function putSQOrderDetails(	cmOrderNumber,
+							cmAccnNumber,
+							sqAccnNumber,
+							cmOrderCode,
+							sqOrderCode,
+							cmMRN,
+							cmVisitID,
+							cmOrderProvider,
+							cmMsgControlID) 
+{
+	try
+	{
+		var driverClass = &quot;oracle.jdbc.driver.OracleDriver&quot;;
+		
+		var dbConn = DatabaseConnectionFactory.createDatabaseConnection(driverClass, getQdbUrl(),getQdbUser(),getQdbPwd());
+		//var conn = getQueueDBConnection();
+		var SQL =  &apos;BEGIN TIEUSER.SQ_ORDER_EXTENSION.INSERT_CM_ORDER(?,?,?,?,?,?,?,?,?); END;&apos;;
+		
+		var params = new Packages.java.util.ArrayList();
+		params.add(cmOrderNumber);
+		params.add(cmAccnNumber);
+		params.add(sqAccnNumber);
+		params.add(cmOrderCode);
+		params.add(sqOrderCode);
+		params.add(cmMRN);
+		params.add(cmVisitID);
+		params.add(cmOrderProvider);
+		params.add(cmMsgControlID);
+
+		dbConn.executeUpdate(SQL, params);
+
+		return;
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template SQ-putSQOrderDetails: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);		
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>2</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>bbb03861-3834-45af-af46-ab8ea6911d41</id>
+    <name>getFillerOrderNumber</name>
+    <tooltip>Obtains a dummy filler order number from the dummyrrr database.</tooltip>
+    <code>function getFillerOrderNumber(acn_number) 
+{
+
+	var driverClass = &quot;com.mysql.jdbc.Driver&quot;;
+	var connectURL=&quot;jdbc:mysql://localhost:3306/dummyrrr&quot;;
+	var username = &quot;root&quot;;
+	var password = &quot;adstock&quot;;
+	var dbConn = null;
+    var rs = null;
+	var fillerOrderNum = -1;
+
+	var sqlOrderExists = &quot;select count(*) as records from crs_accn_log where placer_accession_number = &apos;&quot; + acn_number + &quot;&apos;&quot;; 
+    var sqlInsertACN = &quot;insert into crs_accn_log (placer_accession_number) values (&apos;&quot; + acn_number + &quot;&apos;)&quot;;
+    var sqlGetOrderNum = &quot;select filler_order_number from crs_accn_log where placer_accession_number = &apos;&quot; + acn_number + &quot;&apos;&quot;;
+	
+	try 
+	{
+		dbConn = DatabaseConnectionFactory.createDatabaseConnection(driverClass,connectURL,username,password);
+		
+		rs = dbConn.executeCachedQuery(sqlOrderExists);
+        rs.next();
+        if(rs.getInt(&quot;records&quot;) == 0) 
+		{
+			var result = dbConn.executeUpdate(sqlInsertACN);
+		}
+
+		rs = dbConn.executeCachedQuery(sqlGetOrderNum);
+		rs.next();
+ 		fillerOrderNum = rs.getInt(&quot;filler_order_number&quot;);
+		rs = null;
+        dbConn.close();
+		//logger.info(&quot;GCE!&quot;);
+	}
+	catch(err)
+	{
+		if(dbConn != null)
+		{
+			dbConn.close();
+		}
+
+		logger.error(&quot;Failed to fetch message errors for message ID = &quot; + idMessage);
+	}
+	
+	dbConn = null;
+	return fillerOrderNum;
+}</code>
+    <type>FUNCTION</type>
+    <scope>3</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>fa09094d-004e-47ca-bfe6-29a54772b512</id>
+    <name>logTranslationError</name>
+    <tooltip>Send translation error message to translation error logging channel</tooltip>
+    <code>// Logs a translation failure
+// Creates XML message based on input arguments
+// Calls translation failure logging channel (loggingChannelName) with XML message using VM Router  
+//
+// 02-06-2011 Added param for failCode to be logged to database.
+// Signature of code template is: (tranSetName, fromCode, failCode, messageID, comment, loggingChannelName)
+//
+// 02-06-2011 Attempting to &apos;overload&apos; logTranslation code template to either a TranslationResult object or a 
+// from code. If a from code sent, then the fail code is handled as a NULL value which is set as a default
+// value.
+// Signature of code template is: (tranSetName, passedResult, messageID, comment, loggingChannelName)
+function logTranslationError(tranSetName, passedResult, messageID, comment, loggingChannelName){
+	try {
+		//checking type of passedResult object. If it is of type nhs.ohis.si.translator.data.TranslationResult it
+		//will be treated as such. Otherwise it will be treated as a var
+		if (typeof passedResult == &quot;string&quot;)
+		{
+			logger.error(&quot;Passed result is a string&quot;);
+			// create message. Fail code uses default value on FAIL_CODE column 
+			var logString = &quot;&lt;TRANSLATION_FAILURE&gt;&quot; + 
+							&quot;&lt;LOG&gt;&quot; + 
+							&quot;&lt;CHANNEL_ID&gt;&quot; + getChannelName() + &quot;&lt;/CHANNEL_ID&gt;&quot; + 
+							&quot;&lt;TRANS_SET&gt;&quot; + tranSetName + &quot;&lt;/TRANS_SET&gt;&quot; + 
+							&quot;&lt;FROM_CODE&gt;&quot; + passedResult + &quot;&lt;/FROM_CODE&gt;&quot; + 
+							&quot;&lt;FAIL_CODE&gt;UNKNOWN&lt;/FAIL_CODE&gt;&quot; +
+							&quot;&lt;MESSAGE_ID&gt;&quot; + messageID + &quot;&lt;/MESSAGE_ID&gt;&quot; + 
+							&quot;&lt;COMMENT&gt;&quot; + comment +	&quot;&lt;/COMMENT&gt;&quot; + 
+							&quot;&lt;DATE_TIME&gt;&quot; + DateUtil.getCurrentDate(&quot;yyyyMMddHHmmssSSS&quot;) + &quot;&lt;/DATE_TIME&gt;&quot; + 
+							&quot;&lt;/LOG&gt;&quot; + 
+							&quot;&lt;/TRANSLATION_FAILURE&gt;&quot;;
+		}
+		else if(typeof passedResult == &quot;object&quot;)
+		{
+			logger.error(&quot;Passed result is an object&quot;);
+			if (passedResult instanceof Packages.nhs.ohis.si.translator.data.TranslationResult)
+			{
+				logger.error(&quot;Instance of translationResult was passed&quot;);
+				// create message
+				var logString = &quot;&lt;TRANSLATION_FAILURE&gt;&quot; + 
+								&quot;&lt;LOG&gt;&quot; + 
+								&quot;&lt;CHANNEL_ID&gt;&quot; + getChannelName() + &quot;&lt;/CHANNEL_ID&gt;&quot; + 
+								&quot;&lt;TRANS_SET&gt;&quot; + tranSetName + &quot;&lt;/TRANS_SET&gt;&quot; + 
+								&quot;&lt;FROM_CODE&gt;&quot; + passedResult.getFromCode().toString() + &quot;&lt;/FROM_CODE&gt;&quot; + 
+								&quot;&lt;FAIL_CODE&gt;&quot; + passedResult.getOutcome() + &quot;&lt;/FAIL_CODE&gt;&quot; +
+								&quot;&lt;MESSAGE_ID&gt;&quot; + messageID + &quot;&lt;/MESSAGE_ID&gt;&quot; + 
+								&quot;&lt;COMMENT&gt;&quot; + comment +	&quot;&lt;/COMMENT&gt;&quot; + 
+								&quot;&lt;DATE_TIME&gt;&quot; + DateUtil.getCurrentDate(&quot;yyyyMMddHHmmssSSS&quot;) + &quot;&lt;/DATE_TIME&gt;&quot; + 
+								&quot;&lt;/LOG&gt;&quot; + 
+								&quot;&lt;/TRANSLATION_FAILURE&gt;&quot;;
+
+			}
+			else
+			{
+				throw new Error(&quot;Unexpected object type passed as parameter. Type received was: &quot; + typeof(passedResult));
+			}
+		}
+		else
+		{
+			throw new Error(&quot;Unexpected object type passed as parameter. Type received was: &quot; + typeof(passedResult));
+
+		}
+
+        // route message
+    	router.routeMessage(loggingChannelName,new XML(logString), false);
+   }
+   catch (err)
+   {
+		var errMsg = &quot;Error from code template logTranslationError : &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+   }
+}</code>
+    <type>FUNCTION</type>
+    <scope>3</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>d2962b17-2ba6-4b6f-86ba-b14530310d82</id>
+    <name>getChannelName</name>
+    <tooltip>Get the channel name from the channel ID</tooltip>
+    <code>// 28-01-2011 HS
+// Modified code template to make use of Mirth advised code to get the channel name. However have found out that
+// if this code template is called from outside transformer code, the deployedChannel object is null. As a result,
+// workaround that has been implemented puts the channelName on to the globalChannelMap with the channelId as key.
+
+// 07-01-2011 HS
+// Unifying code to make use of single function that returns the name of the current channel from the global map.
+// This allows the same function to be called from any scope not having to worry about the current deploy state of
+// the channel, etc.
+
+function getChannelName() 
+{
+	channelName = globalMap.get(channelId);
+	return channelName;
+
+//replaced code on 07-FEB-2011.
+/* 
+	var deployedChannel = Packages.com.mirth.connect.server.controllers.ChannelController.getInstance().getDeployedChannelById(channelId);
+	var channelName = null;
+	if (deployedChannel == null)
+	{
+		channelName = globalMap.get(channelId);
+	}
+	else
+	{
+		channelName = deployedChannel.getName();
+	}
+
+	return channelName;
+*/
+
+/*
+	var channelName = Packages.com.mirth.connect.server.controllers.ChannelController.getInstance().getDeployedChannelById(channelId).getName();
+	if(channelName == null) 
+		channelName = globalMap.get(channelId);
+
+	return channelName;
+	//return Packages.com.mirth.connect.server.controllers.ChannelController.getInstance().getDeployedChannelById(channelId).getName();
+	//return globalMap.get(channelId);
+*/
+
+
+}
+
+	</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>a57e635f-6be9-46bb-90ea-5d6ddd42411e</id>
+    <name>DBQ-getLabORRTarget</name>
+    <tooltip>Returns  the appropriate target lab information system for a passed ORC.3 field</tooltip>
+    <code>/*
+	
+	Called from destination filter in Order-Lab filtering channel. Depending on value held in ORC.3.1 will route
+	to the relavent laboratory system.
+	
+	Created: ?
+	Modified: 24-Feb-2011
+
+	Currently filtering to the following laboratory systems based on the .
+	Form of the field will be something like: SQ_xxxxx_xxxx. Only considering substring from beginning of string
+	to occurance of first underscore.
+	
+	SYSTEM									Portion of filler order num field (ORC.3.1)
+	LIMS									LM
+	SUNQUEST								SQ
+	TELEPATH								BB
+
+*/
+
+function getLabORRTarget(orcValue) {
+	try
+	{
+
+		//if ORC.3.1 value is not in expected form XX_XXXX_XXXX then do not allow message to be 
+		//queued on lab bound queue.
+		if (orcValue.indexOf(&quot;_&quot;) &lt; 0)
+		{
+			return null;	
+			//could throw an error, but that would shut down the channel when caught.
+		}
+
+		var orcSubstring = orcValue.substring(0, orcValue.indexOf(&quot;_&quot;));
+		if (orcSubstring == &quot;LM&quot;)
+		{
+			return &quot;LIMS&quot;;
+		}
+		else if (orcSubstring == &quot;SQ&quot;)
+		{
+			return &quot;SUNQUEST&quot;;
+		}
+		else if (orcSubstring == &quot;BB&quot;)
+		{
+			return &quot;TELEPATH&quot;;
+		}
+		else
+		{
+			return null;
+		}
+	}
+	catch (err)
+	{
+			var errMsg = &quot;Error in code template DBQ-getLabORRTarget: &quot; + err.message;
+			logger.error(errMsg);
+			throw new Error(errMsg);			
+	}
+
+}</code>
+    <type>FUNCTION</type>
+    <scope>3</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>1e50d39c-ff8e-4ad1-a68c-9b6db6f44fe4</id>
+    <name>TRN-TranslateAndLogWithDefault</name>
+    <tooltip>Translator wrapper returns translation result object populated with values found from translation set or wiith default values if no match found.Logs translation if fromCode is not empty.</tooltip>
+    <code>function translateAndLogWithDefault(translator, transSetName, fromCode, defaultToCode, defaultToValue, logComment)
+{
+	try {
+		
+		var	tranResult = translator.translate(transSetName,fromCode);
+
+		//Use default values if translation fails including when fromCode is empty. 
+		//Log translation failure if fromCode is not empty. 
+		if(tranResult.getOutcome() != Packages.nhs.ohis.si.translator.data.TranslationResultEnum.SUCCESS){
+			if(tranResult.getOutcome() != Packages.nhs.ohis.si.translator.data.TranslationResultEnum.NO_FROM_CODE){
+				logTranslationError(transSetName, 
+                   			tranResult, 
+                   			messageObject.getId().toString(),
+                   			logComment,
+                   			&quot;translation_failure_logger&quot;);	
+			}			
+
+			tranResult.setToCode(defaultToCode);
+			tranResult.setToValue(defaultToValue);	
+    	}
+		return tranResult;
+	}
+	catch(e){
+		var error = &quot;Code template translateAndLogWithDefault called by channel &quot; + getChannelNameFromID(channelId) + &quot;. Exception &quot; + e.message;
+		logger.error(error);
+		throw new Error(error);		
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>3</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>03e553ab-5558-4aab-8190-56075949dacb</id>
+    <name>ALRT-sendAlert</name>
+    <tooltip>Send a mail alert to</tooltip>
+    <code>/*
+*	Description
+*	Send a mail alert to to TIEsupport@ohis.nhs.uk based on alertSubject and alertMessage 
+*
+*	Hstory
+*	11-08-2011		JC		Initial	
+*   22/03/12        MRD     Do not propergate exception to avoid channel postprocessor stopping the channel on error	
+*/
+
+function sendAlert(alertSubject,alertMessage) {
+	try	{
+		//gets the channel name currently in context
+		var channelName = globalMap.get(channelId);
+
+		logger.info(channelName +&apos;   (&apos;+$(&apos;messageControlID&apos;)+&apos;)   &apos; + alertSubject);
+
+		var errorText = &apos;\r\n&apos;
+		errorText=errorText + &apos;Channel Name :        &apos; + channelName + &apos;\r\n&apos;;
+		errorText=errorText + &apos;Message Id   :        &apos; + $(&apos;messageControlID&apos;) + &apos;\r\n\r\n&apos;;
+		errorText=errorText + alertMessage ;
+	
+
+		var smtpConn=SMTPConnectionFactory.createSMTPConnection();
+		//var subject=channelMap.get(&apos;subject&apos;);
+		var from=&quot;oxnettiedev01@ohis.nhs.uk&quot;
+ 		//var recipients=&quot;TIEsupport@ohis.nhs.uk&quot;;
+		var recipients = &quot;hizni.salih@ohis.nhs.uk&quot;;
+	
+		// send email
+		smtpConn.send(recipients,&quot;&quot;,from,alertSubject,errorText);
+
+	return;
+	}
+
+	catch (err)	{
+		var errMsg = &quot;Error in code template ALRT-sendAlert: &quot; + err.message;
+		logger.error(errMsg);
+		// MRD 22/03/12 Do not propergate exception to avoid channel postprocessor stopping the channel on error
+		//throw new Error(errMsg);			
+	}
+}
+
+</code>
+    <type>FUNCTION</type>
+    <scope>1</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>e52fb1a1-edfc-4927-9cc8-ae4ae981c03e</id>
+    <name>DBQ-shouldPollDB</name>
+    <tooltip>test is subscribing channel need to poll the database</tooltip>
+    <code>function shouldPollDB(qid) {	
+	try {
+		var pollDB = false;
+		// Set maximum interval between DB polls as a backup incase getSubscribeWatchdog() returns unsuable time
+		//var maxPollInterval = 30000;
+		//if (getSubscribeWatchdog() != null)
+		//{
+		//	logger.error(&apos;Successfully retrieved watchdog time: &apos; + getSubscribeWatchdog());
+		//	maxPollInterval = getSubscribeWatchdog();
+		//}
+		if (getSubscribeWatchdog() == null)
+		{
+			logger.error(&quot;Subscribe watchdog retrieved from XML was null. Please check....&quot;);
+			setSubscribeWatchdog(30000);
+			
+		}
+
+		// get current date/time
+		var now = new Date();
+		// get the last published message number for the queue  
+		var lastPubMsgNum = getLastPubMsgNbr(qid);
+		//logger.error(&apos;Last pub:&apos; + lastPubMsgNum);
+    	// get the last subscribed message number for the channel
+    	var lastSubMsgNum = getLastSubMsgNbr(qid);
+		//logger.error(&apos;Last sub:&apos; + lastSubMsgNum);
+		// get last poll datestamp for channel
+		var lastDBPoll = getLastDbPoll();	
+		//logger.error(&apos;Last DB poll:&apos; + lastDBPoll);
+
+/*
+		// Do comparison logic
+		// Test if mapper variable for last published message or last subscribed message are set
+		if(lastPubMsgNum == null || lastSubMsgNum == null) pollDB = true;
+		// Test if maximum duration between database polls has been exceeded
+		else if (now.getTime() - lastDBPoll &gt; maxPollInterval) pollDB = true;
+        // Test if past published message is different form last subcribed message
+		else if(lastPubMsgNum != lastSubMsgNum) pollDB = true;  
+		else pollDB = false;
+*/
+
+		if(lastPubMsgNum == null || lastSubMsgNum == null) 
+			pollDB = true;
+
+		var intervalElapsed = now.getTime() - lastDBPoll;	
+		//logger.error(&quot;Interval elaspsed: &quot; + intervalElapsed);
+		if (intervalElapsed &gt; getSubscribeWatchdog())
+			pollDB = true;
+		
+		
+		if(lastPubMsgNum != lastSubMsgNum) 
+			pollDB = true;
+
+		
+		//logger.error(&quot;ShouldPollDB logic: &quot; + pollDB.toString());
+		return pollDB;
+	}
+	catch (err) {
+		var errMsg = &quot;Error in code template shouldPollDB: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);	
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>1</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>9fa1069d-30a9-466e-b52b-3c531e2c4c91</id>
+    <name>DBQ-setLastPubMsgNbr</name>
+    <tooltip>Set last publsihed message number for queue</tooltip>
+    <code>function setLastPubMsgNbr(qid, msgNbr) {
+	try
+	{
+		globalMap.put(qid + &quot;-lastPubMsgNbr&quot;, msgNbr);		
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template setLastPubMsgNbr: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>3e8deac4-2bea-40ae-ad98-ec2f949e279e</id>
+    <name>DBQ-getLastPubMsgNbr</name>
+    <tooltip></tooltip>
+    <code>function getLastPubMsgNbr(qid) {
+	try
+	{
+		return globalMap.get(qid + &quot;-lastPubMsgNbr&quot;);		
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template getLastPubMsgNbr: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>12554994-4f39-4138-a0f4-f9c6b2ccc134</id>
+    <name>DBQ-setLastSubMsgNbr</name>
+    <tooltip>Set the last message number processed by subcribing channel</tooltip>
+    <code>function setLastSubMsgNbr(qid, msgNbr) {
+	try
+	{
+		globalChannelMap.put(qid + &quot;-lastSubMsgNbr&quot;, msgNbr);		
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template setLastSubMsgNbr: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>1</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>c5e7272d-a9d2-458d-a365-4fdc248fdee1</id>
+    <name>DBQ-getLastSubMsgNum</name>
+    <tooltip>Get last subscribed message number for channel</tooltip>
+    <code>function getLastSubMsgNbr(qid) {
+	try
+	{
+		return globalChannelMap.get(qid + &quot;-lastSubMsgNbr&quot;);		
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template getLastSubMsgNbr: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>1</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>334989af-2263-4aea-a94d-1c073672e914</id>
+    <name>DBQ-getSubscribeWatchdog</name>
+    <tooltip>Gets the subscribe watchdog time (in millisec)</tooltip>
+    <code>function getSubscribeWatchdog() {	
+	try
+	{
+		return globalMap.get(&apos;subscribe_watchdog&apos;);
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template DBQ-getSubscribeWatchdog: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>c1059b5a-6a5e-4914-ab87-40ed7b26ee53</id>
+    <name>DBQ-setSubscribeWatchdog</name>
+    <tooltip>Sets the subscribe watchdog value</tooltip>
+    <code>function setSubscribeWatchdog(timeout) {	
+	try
+	{
+		globalMap.put(&apos;subscribe_watchdog&apos;, timeout);
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template DBQ-setSubscribeWatchdog: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>c24d85e9-440d-48a5-849e-0b29f09f4db0</id>
+    <name>DBQ-getQdbUrl</name>
+    <tooltip>Get the queuing database connection url</tooltip>
+    <code>
+function getQdbUrl() {	
+	try
+	{
+		return globalMap.get(&apos;queueing_jdbc&apos;);
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template DBQ-getQdbUrl: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>0cabdafe-5528-4d7f-899c-bee051f32f96</id>
+    <name>DBQ-setQueueID</name>
+    <tooltip>sets the queue ID for the current message</tooltip>
+    <code>function setQueueID(qID) {
+	try
+	{
+		
+		globalChannelMap.put(&quot;queueID&quot;, qID);		
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template : &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>1</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>1def3cd0-c82c-48c4-b038-d825c0a52f6c</id>
+    <name>DBQ-getQueueID</name>
+    <tooltip>Gets the queue ID for the current message</tooltip>
+    <code>function getQueueID() {
+	try
+	{
+		
+		var qID = globalChannelMap.get(&quot;queueID&quot;);		
+		//logger.error(&quot;Queue ID: &quot; + qID);
+		return qID;
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template : &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>1</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>c33c0ed7-2b1a-4ddb-9aeb-c041d033a436</id>
+    <name>DBQ-getMsgNumber</name>
+    <tooltip></tooltip>
+    <code>function getMsgNumber() {
+	try
+	{
+		
+		var msgNum = globalChannelMap.get(&quot;msgNumber&quot;);		
+		// logger.error(&quot;Message number: &quot; + msgNum);
+		return msgNum;
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template : &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>1</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>ea026d76-b5f7-485b-900b-6ba150047bff</id>
+    <name>DBQ-setLastDBPoll</name>
+    <tooltip>Set the last databse poll time for a channel in millis</tooltip>
+    <code>function setLastDbPoll() {
+	try
+	{
+		var now = new Date();
+		globalChannelMap.put(&quot;lastDbPoll&quot;, now.getTime());		
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template setLastDbPoll: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>1</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>7888288b-941a-4261-b040-274c6e25c96b</id>
+    <name>DBQ-getLastDBPoll</name>
+    <tooltip>Get last database poll timestamp in millis</tooltip>
+    <code>function getLastDbPoll() {
+	try
+	{
+		
+		return globalChannelMap.get(&quot;lastDbPoll&quot;);		
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template getLastDbPoll: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>1</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>0b0b4cd5-1d0b-4168-93a1-f0bb88826056</id>
+    <name>DBQ-setMsgNumber</name>
+    <tooltip>Sets the message number for the current message</tooltip>
+    <code>function setMsgNumber(msgNumber) {
+	try
+	{
+		
+		globalChannelMap.put(&quot;msgNumber&quot;, msgNumber);		
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template : &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>1</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>ee802535-dee9-4b11-a61f-f333c7d18336</id>
+    <name>TST-ListPromotableAttributes</name>
+    <tooltip>Lists out the promotable attributes for the channel to the error logger (Test# CD-1)</tooltip>
+    <code>
+function test_listPromotableAttributes() {
+	logger.error(&quot;---=== PERFORMING TEST CD-1 ===---&quot;);	
+
+	logger.error(&quot;Listing out the destination queues for channel: &quot; + getChannelNameFromID(channelId));
+
+	//Have to directly query the globalMap because the functions used to normally get the destiunationQMap 
+	//exist at Channel scope.
+	destQueue = globalMap.get(getChannelNameFromID(channelId) + &quot;_destinationQueueMap&quot;);
+	promotableAttribCol = globalMap.get(getChannelNameFromID(channelId) + &quot;_promotableCollection&quot;);
+
+	var destQueueKeys = destQueue.keySet();
+	var destQueueIter = destQueueKeys.iterator();
+	while (destQueueIter.hasNext())
+	{
+		var destinationName = destQueueIter.next();
+		logger.error(&quot;En-queuing destination: &quot; + destinationName.toString());		
+	}
+
+
+	var promotableAttribKeys = promotableAttribCol.keySet();
+	var promotableAttribIter = promotableAttribKeys.iterator();
+	while (promotableAttribIter.hasNext())
+	{
+		var promotableAttrib = promotableAttribIter.next();
+		logger.error(&quot;Promoting the following attributes to queue: &quot; + promotableAttrib.toString());	
+		
+
+		var promotableAttribCol2 = promotableAttribCol.get(promotableAttrib);
+		var promotableAttribCol2Iter = promotableAttribCol2.iterator();
+		while (promotableAttribCol2Iter.hasNext())
+		{
+			var mat = promotableAttribCol2Iter.next();
+			logger.error(&quot;Attribute type code: &quot; + mat.getAttributeTypeCode() + &quot;; HL7 Ref: &quot; + mat.getAttributeHL7Ref());
+		}
+		
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>0b83e67b-fd70-43f6-84d5-fa4afd528d9b</id>
+    <name>DBQ-closeQueueDbConnection</name>
+    <tooltip>Close the queueing database connection for the channel in context</tooltip>
+    <code>// 01-02-2011 HS	- Created
+function closeQueueDbConnection() {
+
+	try
+	{
+		var channelName = getChannelName();
+		logger.info(&quot;Closing database connection for channel: &quot; + channelName);
+
+		var databaseConnection = globalMap.get(&quot;QdbConnection_&quot; + channelName);
+		if (databaseConnection != null)
+		{
+			databaseConnection.close();
+		}
+
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template DBQ-closeQueueDBConnection : &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);	
+	}	
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>90995cde-14ef-4858-bd3a-3e1a8dc28cc8</id>
+    <name>TRN-getTranslatorUsingChannelID</name>
+    <tooltip>Gets the translator for the passed channel</tooltip>
+    <code>
+function getTranslatorUsingChannelID(channelID) {
+	try
+	{
+		return globalMap.get(getChannelNameFromID(channelID) + &quot;_translator&quot;);
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template TRN-setTranslator: &quot; + err.message;
+		logger.error(errMsg);
+		throw new error(ErrMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>d6363085-d0c5-4dbc-946b-b7b122c152b8</id>
+    <name>DBQ-setSubscriptionNumber</name>
+    <tooltip>Sets the DB queue subscription number</tooltip>
+    <code>
+function setSubscriptionNumber(subsNumber) {
+	try
+	{
+		globalMap.put(channelId.toString() + &quot;-subsNumber&quot;, subsNumber);		
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template : &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>2</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>e46122d2-b762-4110-891d-d5c762e0ef9b</id>
+    <name>TST - timeWasterCode stop channel</name>
+    <tooltip>Piece of code to perform &quot;time wasting&quot; loop that allows tests to be carried out.</tooltip>
+    <code>
+function test_timeWastingCode() {
+	var seconds = parseInt(DateUtil.getCurrentDate(&apos;ss&apos;));
+	var delay = 30
+	var watch = 0;
+	var counter = 1000;
+
+	watch = (seconds+delay)%59;
+
+	logger.error(&apos;Start Delay&apos;);
+
+	while (parseInt(DateUtil.getCurrentDate(&apos;ss&apos;)) != watch)
+	{	
+	    if(counter-- == 0){
+			 	//stopChannel(channelId);
+				//logger.error(&apos;Channel Stopped&apos;);
+		}
+	
+	};
+
+	logger.error(&apos;End Delay&apos;);
+}</code>
+    <type>FUNCTION</type>
+    <scope>3</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>69e52b8f-0eb8-411a-8c76-5375b7bd1393</id>
+    <name>DBQ-getSubscriptionNumber</name>
+    <tooltip>Gets the DB queue subscription number from the map</tooltip>
+    <code>function getSubscriptionNumber() {
+	
+
+	try
+	{
+		//var subsNumber = globalMap.get(channelId.toString() + &quot;-subsNumber&quot;);
+    	//if(subsNumber == null || subsNumber == &quot;&quot;) {
+	    //       throw new Error(&quot;Post processor script unable to retrieve subscription id on channel &quot;
+	    //                       + getChannelName());
+	    //}
+		return globalMap.get(channelId.toString() + &quot;-subsNumber&quot;);
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template DBQ-getSubscriptionNumber: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);		
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>2</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>8a3ef59d-9a22-4dcc-a06e-0337263a5aff</id>
+    <name>DBQ-getResponseInfo</name>
+    <tooltip>Returns the response code (MSA.1.1) and response string (MSA.3.1) in JScriot type call ResponseInfo</tooltip>
+    <code>function getResponseInfo(destinationName) {
+	
+	var resInfo = new ResponseInfo(destinationName);
+
+	try
+	{
+    	var response = responseMap.get(destinationName);
+		var responseMessage = responseMap.get(destinationName).getMessage();
+		
+		//logger.info(&quot;--== Discovering post-proc response from destination: &quot; + destinationName + &quot; ==--&quot;);	
+
+		//split up responseMessage into chunks
+		var splitResponseMsg = responseMessage.split(&apos;:&apos;);
+		
+		//check each chunk to see if it contains HL7 (N)ACK
+		var hl7Found = false;
+	
+		for(var j = 0; j &lt; splitResponseMsg.length; j++)
+		{
+			var responseBody = splitResponseMsg[j];
+			//if responseBody holds HL7 message then 
+			if (responseBody.indexOf(&apos;MSH|&apos;) != -1)
+			{
+				hl7Found = true;
+				//serialize an HL7 object that can be navigated using E4X
+				var xml = new XML (SerializerFactory.getHL7Serializer(false, false).toXML(responseBody));
+				// exttrcat the msa Ack code and ack string
+                resInfo.ackCode = xml[&apos;MSA&apos;][&apos;MSA.1&apos;][&apos;MSA.1.1&apos;].toString();
+				resInfo.ackString = xml[&apos;MSA&apos;][&apos;MSA.3&apos;][&apos;MSA.3.1&apos;].toString();
+				break;
+			}
+		}
+
+		if (hl7Found == false)
+		{			
+			resInfo.ackCode = splitResponseMsg[0];
+		}
+	
+		if(resInfo.ackCode == null || resInfo.ackCode == &quot;&quot;) 
+		{
+			throw new Error(&quot;Function getResponseCode unable to extract message response on channel &quot; + getChannelName());
+		} 		
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template DBQ-getResponseInfo: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);		
+	}
+	finally
+	{
+		return resInfo;
+	}
+	
+}
+</code>
+    <type>FUNCTION</type>
+    <scope>2</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>f6263515-1583-4ae9-9702-917f8c65ed7a</id>
+    <name>DBQ-ResponseInfo Type</name>
+    <tooltip>Defines type for message response</tooltip>
+    <code>function ResponseInfo(type) {
+	this.type = type;
+	this.ackCode = &quot;&quot;;
+	this.ackString = &quot;&quot;;
+}
+</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>1ce17b79-4997-4af9-9874-e98bff36e707</id>
+    <name>DBQ-getEnvironment</name>
+    <tooltip>Gets the environment variable held in tie-config.xml</tooltip>
+    <code>function getEnvironment() {
+	try
+	{
+		//12-APR-2012 HS Created
+		return globalMap.get(&quot;envtype&quot;);
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template DBQ-getQueueDBConnection: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>c4969f76-820a-4417-931a-2389b1c6154a</id>
+    <name>DBQ-getLastSubMsgNumber_R2</name>
+    <tooltip>DBQ-getLastSubMsgNumber release 2</tooltip>
+    <code>function getLastSubMsgNbr_R2(qid) {
+	try
+	{
+		var lastSubMsgNum = globalChannelMap.get(qid + &quot;-lastSubMsgNbr&quot;);		
+		if (lastSubMsgNum == &quot;&quot; || lastSubMsgNum == null)
+		{
+			lastSubMsgNum = &quot;0&quot;;
+		}
+
+		return lastSubMsgNum;
+
+
+	}
+	catch (err)
+	{
+		var errMsg = &quot;Error in code template getLastSubMsgNbr: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);			
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>1</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>3e5e98f3-e4dc-4559-9b9c-e7af4af0d737</id>
+    <name>DBQ-InitializeChannelQueueing</name>
+    <tooltip>Sets up the channel for use with TIE queueing functionality</tooltip>
+    <code>/*
+NAME: QueueingChannelInitialize
+DATE: 31-8-10
+CREATED BY: HS
+HISTORY
+
+	DATE								DESCRIPTION
+	31-08-2010							Created
+	08-09-2010							Modified enqueueing to perform destination level enqueue.
+	16-09-2010							Added transformer logic.
+	29-10-2010							Added logic that gets a pooled JDBC connection
+	25-10-2011							Setting promoter on channel global map due to concurrency issues.
+
+*/
+function initializeChannelQueueing() {
+	try
+	{		
+
+		//07-FEB-2011 HS Harmonizing function calls
+		//var channelName = getChannelNameFromID(channelId);
+		var channelName = getChannelName(channelId);
+		logger.info(&quot;ChannelInitalization starting for: &quot; + channelName + &quot; ...&quot;);	
+
+		//Hold connectionDef object &apos;rehydrated&apos; from serialized object.	
+		//var tieConnectionDefinition = globalMap.get(&quot;tieConnectionDefinition&quot;);
+
+		//logger.debug(&quot;Building list of promotable items...&quot;);
+
+		//Call Java object that returns built resultset of promotable objects for the queue this channel will be working
+		//with.
+		//Have promoter returning a list of promoter objects that contain each contain a list of attribute types.
+		//Each destination can promote to 1 to * queues. Get this list of queues and the attributes that promote to them. 
+		//Repetition of promotable attributes does not matter.
+		
+		//hs 29/10/10  
+		//var promoter = Packages.nhs.ohis.si.queueing.Promoter(channelName, tieConnectionDefinition);
+		//var promoter = Packages.nhs.ohis.si.queueing.Promoter(channelName, globalMap.get(&quot;QdbConnection_&quot; + channelName));	
+		var promoter = Packages.nhs.ohis.si.queueing.Promoter(channelName, getQueueDBConnection());
+		
+		//HS 25/10/11
+		//setting promoter on global map due to concurrency issues that were recently discovered.
+		setPromoter(promoter);
+		//var conObj = globalMap.get(&quot;QdbConnection_&quot; + channelName);				
+		//var promoter = Packages.nhs.ohis.si.queueing.Promoter(channelName, globalMap.get(&quot;QdbConnection_&quot; + channelName));	
+
+		// md 23/09/10 globalMap.put(channelName + &quot;_destinationQueueMap&quot;, promoter.getChannelDestinationQueueMap());
+		setDestinationQueueMap(channelId, promoter.getChannelDestinationQueueMap());
+	
+    	//promotableCollection key will contain all promotable items for all queues the channel publishes to.
+		// md 23/09/10 globalMap.put(channelName + &quot;_promotableCollection&quot;, promoter.getAttributeTypes());
+		setPromotableCollection(channelId, promoter.getAttributeTypes());	
+
+		//logger.debug(&quot;ChannelInitalization successful!&quot;);	
+	}
+	catch (e)
+	{
+		var errMsg = &quot;Error in code template DBQ-InitializeChannelQueueing: &quot; + e.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);
+	}
+
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>ad905c5a-28b7-4e4b-9c33-03a523328f5a</id>
+    <name>getChannelNameFromID</name>
+    <tooltip>Gets the channel name from the channel id</tooltip>
+    <code>// 07-01-2011 HS
+// Unifying code to make use of single function that returns the name of the current channel from the global map.
+// This allows the same function to be called from any scope not having to worry about the current deploy state of
+// the channel, etc.
+// Method will be deprecated.
+
+function getChannelNameFromID(channelID) {
+	
+	var channelName = globalMap.get(channelID);
+	return channelName;
+
+//replaced code on 07-FEB-2011.
+/*	
+	var deployedChannel = Packages.com.mirth.connect.server.controllers.ChannelController.getInstance().getDeployedChannelById(channelID);
+	var channelName = null;
+	if (deployedChannel == null)
+	{
+		channelName = globalMap.get(channelID);
+	}
+	else
+	{
+		channelName = deployedChannel.getName();
+	}
+	
+	return channelName;
+*/
+	//return Packages.com.mirth.connect.server.controllers.ChannelController.getInstance().getDeployedChannelById(channelID).getName();
+	//return globalMap.get(channelID);
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>312e17c6-8a99-4d4d-a947-ea77dbfdd36c</id>
+    <name>DBQ-getQdbPwd</name>
+    <tooltip>Get queue DB connection password</tooltip>
+    <code>
+function getQdbPwd() {
+	try
+	{
+		return globalMap.get(&apos;queueing_pass&apos;);
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template DBQ-getQdbPwd: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>cb644a93-44c4-4787-99f8-7c89def5e3d2</id>
+    <name>CON-getMessageByMessageControlID</name>
+    <tooltip>Gets the latest message from the messages that have been queued in the queueing database</tooltip>
+    <code>/*
+	Gets the queued message that has the same message control ID. This will return the latest message
+	(there should be only one record returned)
+
+	15-SEP-11	Created
+*/
+
+function getMessageByMessageControlID(msgControlID) {
+	
+	var result = &quot;&quot;;
+	try
+	{
+//		var driverClass = &quot;oracle.jdbc.driver.OracleDriver&quot;;
+
+/*
+		//20-SEP-2011 HS
+		//Modified to allow repoint at different TIE environment queueing databases
+		var jdbcURI = globalMap.get(&apos;queueing_jdbc&apos;);
+		var dbUser = globalMap.get(&apos;queueing_user&apos;);
+		var dbPass = globalMap.get(&apos;queueing_pass&apos;);
+*/
+	
+/*
+		var driverClass = &quot;oracle.jdbc.driver.OracleDriver&quot;;
+		var jdbcUrl = &quot;jdbc:oracle:thin:@OXNETTIEMSGQ01.oxnet.nhs.uk:1521:TIEMSGPD&quot;;
+		var dbUser = &quot;tieuser&quot;;
+		var dbPass = &quot;oas1s&quot;;
+
+		var dbConn = DatabaseConnectionFactory.createDatabaseConnection(driverClass, jdbcUrl,dbUser,dbPass);
+*/
+		var dbConn =  getQueueDBConnection();
+		
+		var sqlStoredProc = &quot;select TIEUSER.DBQ_ORDER_CONVOY.GET_MSG_BY_MSGCTRLID(?) from dual&quot;;
+
+		var params = new Packages.java.util.ArrayList();
+		params.add(msgControlID);
+	
+		var rs = dbConn.executeCachedQuery(sqlStoredProc, params);
+		var xmlOutput = null;
+		if(rs.next())
+		{			
+			result = rs.getClob(1);
+			if (result != null)
+			{
+				xmlOutput = new XML(result.getSubString(1, result.length()));
+			}		
+		}
+
+		return xmlOutput;
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template CON-getMessageByMessageControlID: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);		
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>2</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>673faac8-6443-4cab-8fc6-18d3546626a1</id>
+    <name>getResultsForOrder</name>
+    <tooltip>Gets dummy results for the a given order code (cs 200) from the dummyrrr database</tooltip>
+    <code>// modify function_name and parameters as you wish.
+// one function per template is recommended. i.e.) create a new code template for each new function.
+function getResultsForOrder(orderCode) 
+{
+	var driverClass = &quot;com.mysql.jdbc.Driver&quot;;
+	var connectURL=&quot;jdbc:mysql://localhost:3306/dummyrrr&quot;;
+	var username = &quot;root&quot;;
+	var password = &quot;adstock&quot;;
+	var dbConn = null;
+    var rs = null;
+	var fillerOrderNum = -1;
+
+	var sqlResults1 = &quot;SELECT o.order_comment, r.code, r.name, rv.value, rv.uom_code, rv.ref_range, rv.result_comment, rv.value_type_code &quot;;
+    var sqlResults2 = &quot;FROM `order` o JOIN `order_result` o_r ON o.code = o_r.order_code JOIN `result` r ON o_r.result_code = r.code JOIN `result_value` rv ON r.code = rv.result_code &quot;;
+    var sqlResults3 = &quot;WHERE o.code = &apos;&quot; + orderCode + &quot;&apos; order by rv.sort_order&quot;; 
+    
+	
+	try 
+	{
+		dbConn = DatabaseConnectionFactory.createDatabaseConnection(driverClass,connectURL,username,password);
+		
+		rs = dbConn.executeCachedQuery(sqlResults1 + sqlResults2 + sqlResults3);
+        dbConn.close();
+		logger.info(&quot;Results Retrieved! &quot; + orderCode.toString());
+	}
+	catch(err)
+	{
+		if(dbConn != null)
+		{
+			dbConn.close();
+		}
+		rs = null;
+		throw(err);
+	}
+	
+	dbConn = null;
+	return rs;
+}</code>
+    <type>FUNCTION</type>
+    <scope>3</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>f5a339e6-b290-4531-95fe-ca44ef29e98b</id>
+    <name>CON-getOrderByAccnNum_OrderableCode</name>
+    <tooltip>Gets the latest order from the specified queue that has be specfied accn number and orderable code</tooltip>
+    <code>/*
+	Gets the latest queued message that resides in the specified queue, that has the 
+	specified accession number and orderable code.
+
+	This function makes use of the following package and query in the queueing database: 
+	DBQ_ORDER_CONVOY.GET_ORDER_BY_P_ACCNID_P_ORDRCD
+
+	04-MAY-11	Created
+*/
+function getOrderByAccnNumber_OrderableCode(queueID, accnNum, orderableCode) {
+	var result = null;
+	try
+	{
+		
+		var dbConn = getQueueDBConnection();	
+		
+		var sqlStoredProc = &quot;exec TIEUSER.DBQ_ORDER_CONVOY.GET_ORDER_BY_P_ACCNID_P_ORDRCD(?,?,?)&quot;;
+		var params = new Packages.java.util.ArrayList();
+	
+		params.add(queueID);
+		params.add(accnNum);
+		params.add(orderableCode);
+
+		var rs = dbConn.executeCachedQuery(sqlStoredProc, params);
+		rs.next();
+		result = rs.getString(&quot;published_message&quot;);
+       
+		
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template CON-getOrderByAccnNumOrderableCode: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);		
+	}
+	finally
+	{
+		if (result != null)
+		{
+			logger.error(&quot;logger output -&gt; &quot; + result);
+		}
+		return result;
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>2</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>ef890785-29e1-476f-8355-7f506ea000b5</id>
+    <name>DBQ-getDuplicateStatus</name>
+    <tooltip>Gets the duplicate status for a de-queued message from the map</tooltip>
+    <code>
+function getDuplicateStatus() {
+	try
+	{
+		return globalMap.get(channelId.toString() + &quot;-duplicateStatus&quot;);
+	}
+	catch (err)
+	{	
+		var errMsg = &quot;Error in code template DBQ-getDuplicateStatus: &quot; + err.message;
+		logger.error(errMsg);
+		throw new Error(errMsg);
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>2</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>614f1e77-e32b-490f-a8c2-15e0c699a8c2</id>
+    <name>DCFG-setDestEndPointByEnv</name>
+    <tooltip>Sets destination end point on global channel map based on environment. Use  ${destIP}  &amp; ${destPort} in dest llp config.</tooltip>
+    <code>//Sets destination end point on global channel map based on environment. Use  ${destIP}  &amp; ${destPort} in dest llp config.
+// see also configuration file /folders/mirthconnect/conf/tie-config.xml
+function setDestEndPointByEnv(devIp, devPort, testIp, testPort, prodIp, prodPort) {
+	try {
+		// Velocity templates for IP and Port setting using this code will look like
+		// ${destIP} and ${destPort} 
+
+		// Set the source or destination ip and port addresses based on the current appliance environment
+		// get the environment from the global map 
+		var env = new String(globalMap.get(&apos;envtype&apos;));
+		var ip = &apos;?&apos;;
+		var port = &apos;?&apos;;
+		var isSet = false;
+
+		env = env.substring(0,3);
+
+		if(env != null) {
+			switch(env) {
+				case &apos;DEV&apos;:
+					ip = devIp;
+					port = devPort;
+					isSet = true;
+					break;
+				case &apos;TES&apos;:
+					ip = testIp;
+					port = testPort;
+					isSet = true;
+					break;
+				case &apos;PRO&apos;:
+					ip = prodIp;
+					port = prodPort;
+					isSet = true;
+					break;
+				default:
+			    	ip = &apos;not set!&apos;;
+					port = &apos;not set!&apos;;
+					isSet = true;
+					break;
+			}
+			
+			if(!isSet) throw new Error(&apos;Could not set end point adresses&apos;);
+			else {
+				globalChannelMap.put(&apos;destIP&apos;,ip);
+				globalChannelMap.put(&apos;destPort&apos;,port);
+			}
+		}
+	}
+	catch (e) {
+		throw new Error(&apos; in setDestEndPointByEnv; &apos; + e.toString());
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>1</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>019085c3-94d2-4dfa-8733-4784609d9473</id>
+    <name>DCFG-setSourceEndPointByEnv</name>
+    <tooltip>Sets source end point on global channel map based on environment. Use  ${sourceIP}  &amp; ${sourcePort} in source llp config.</tooltip>
+    <code>//Sets source end point on global channel map based on environment. Use  ${sourceIP}  &amp; ${sourcePort} in source llp config.
+// see also configuration file /folders/mirthconnect/conf/tie-config.xml
+function setSourceEndPointByEnv(devIp, devPort, testIp, testPort, prodIp, prodPort) {
+	try {
+		// Velocity templates for IP and Port setting using this code will look like
+		// ${sourceIP} and ${sourcePort} 
+
+		// Set the source or destination ip and port addresses based on the current appliance environment
+		// get the environment from the global map 
+		var env = new String(globalMap.get(&apos;envtype&apos;));
+		var ip = &apos;?&apos;;
+		var port = &apos;?&apos;;
+		var isSet = false;
+
+		env = env.substring(0,3);
+
+		if(env != null) {
+			switch(env) {
+				case &apos;DEV&apos;:
+					ip = devIp;
+					port = devPort;
+					isSet = true;
+					break;
+				case &apos;TES&apos;:
+					ip = testIp;
+					port = testPort;
+					isSet = true;
+					break;
+				case &apos;PRO&apos;:
+					ip = prodIp;
+					port = prodPort;
+					isSet = true;
+					break;
+				default:
+			    	ip = &apos;not set!&apos;;
+					port = &apos;not set!&apos;;
+					isSet = true;
+					break;
+			}
+			
+			if(!isSet) throw new Error(&apos;Could not set end point adresses&apos;);
+			else {
+				globalChannelMap.put(&apos;sourceIP&apos;,ip);
+				globalChannelMap.put(&apos;sourcePort&apos;,port);
+			}
+		}
+	}
+	catch (e) {
+		throw new Error(&apos; in setSourceEndPointByEnv; &apos; + e.toString());
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>1</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>43a18327-fa97-4eae-8c79-e56889f6c8db</id>
+    <name>Oracle Exception Stop Channel</name>
+    <tooltip>If an Oracle listed in the function is found in the passed string, the function will return false.</tooltip>
+    <code>
+function OracleExceptionStopChannel(errorText) {
+	var returnVal = false;
+
+	//if any of these Oracle codes are found then the function will return true.
+	var oracleCodes = [&apos;ORA-12541&apos;,&apos;ORA-12505&apos;];
+	for(var i = 0 ; i &lt; oracleCodes.length; i++)
+	{
+		if (errorText.search(oracleCodes[i]) != -1)
+		{
+			returnVal = &apos;true&apos;;
+		}
+	}
+
+	return returnVal;
+}</code>
+    <type>FUNCTION</type>
+    <scope>0</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>b263ad6b-6854-416d-99eb-9806583dfec0</id>
+    <name>DCFG-setCmEnv</name>
+    <tooltip>Determine recieving application for CM based on deployment environment</tooltip>
+    <code>//Sets recivieng application on global channel map based on environment. Use getCmEnv() to retrieve.
+// see also configuration file /folders/mirthconnect/conf/tie-config.xml
+function setCmEnv() {
+	try {
+		// Set the value for the recieving application (MSH 5.1) 
+		// get the environment from the global map 
+		var env = new String(globalMap.get(&apos;envtype&apos;));
+		var destCmRecApp = &apos;?&apos;;
+		var isSet = false;
+
+		env = env.substring(0,3);
+
+		if(env != null) {
+			switch(env) {
+				case &apos;DEV&apos;:
+					destCmRecApp = &apos;SCO4CERT&apos;;
+					isSet = true;
+					break;
+				case &apos;TES&apos;:
+					destCmRecApp = &apos;SCO4CERT&apos;;
+					isSet = true;
+					break;
+				case &apos;PRO&apos;:
+					destCmRecApp = &apos;SCO4PROD&apos;;
+					isSet = true;
+					break;
+				default:
+			    	destCmRecApp = &apos;UNKNOWN&apos;;
+					isSet = true;
+					break;
+			}
+			
+			if(!isSet) throw new Error(&apos;Could not recieving application&apos;);
+			else {
+				globalChannelMap.put(&apos;destCmRecApp&apos;,destCmRecApp);
+			}
+		}
+	}
+	catch (e) {
+		throw new Error(&apos; in setCmEnv(); &apos; + e.toString());
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>1</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+  <codeTemplate>
+    <id>65c39d5d-b9b6-4389-adbd-5315f860cf04</id>
+    <name>DCFG-getCmEnv</name>
+    <tooltip>Get recieving application name for CM based on deployed environment</tooltip>
+    <code>// Get the value for the recieving application (MSH 5.1)
+// see also configuration file /folders/mirthconnect/conf/tie-config.xml
+function getCmEnv() {
+	try {
+		
+		// Get the value for the recieving application (MSH 5.1) 
+
+		var destCmRecApp = globalChannelMap.get(&apos;destCmRecApp&apos;);
+		
+		if(destCmRecApp == null) {
+			throw new Error(&apos;Could not retrieve recieving application name from channel global map.&apos;);
+		}
+	}
+	catch (e) {
+		throw new Error(&apos; in getCmEnv(); &apos; + e.toString());
+	}
+	finally {
+		return destCmRecApp;
+	}
+}</code>
+    <type>FUNCTION</type>
+    <scope>2</scope>
+    <version>2.2.1.5861</version>
+  </codeTemplate>
+</list>

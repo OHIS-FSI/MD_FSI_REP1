@@ -1,0 +1,1574 @@
+<channel>
+  <id>4ead3f2a-ea9e-432f-9afe-1cc8d7eb4328</id>
+  <name>Q_ADT_CRIS_ORH</name>
+  <description>CRIS ORH ADT channel - source: Channel Reader dest: llp&#xd;
+$Rev: 402 $&#xd;
+$Id: Q_ADT_CRIS_ORH.xml 402 2013-04-11 09:54:12Z markd $&#xd;
+&#xd;
+01	20/04/2012		MRD	CREATED&#xd;
+02	13/07/2012		MRD	Added processing for S12 and S13 messages for us ein image pre-fetch. &#xd;
+				Track+ IN 167&#xd;
+	14/03/2013 	MRD	Repointed from new local test CRIS (10.134.138.212) to CSC hosted CRIS (20.146.252.101)	 &#xd;
+03	10/04/2013		MRD	Amended processing of PV1.7 to ensure only NHS Consultant Number personnel 				aliases are used. JIRA TIE-36</description>
+  <enabled>true</enabled>
+  <version>2.2.1.5861</version>
+  <lastModified>
+    <time>1365673662030</time>
+    <timezone>Europe/London</timezone>
+  </lastModified>
+  <revision>21</revision>
+  <sourceConnector>
+    <name>sourceConnector</name>
+    <properties>
+      <property name="DataType">Channel Reader</property>
+      <property name="responseValue">None</property>
+    </properties>
+    <transformer>
+      <steps/>
+      <inboundProtocol>HL7V2</inboundProtocol>
+      <outboundProtocol>HL7V2</outboundProtocol>
+      <inboundProperties>
+        <property name="convertLFtoCR">true</property>
+        <property name="handleRepetitions">false</property>
+        <property name="handleSubcomponents">false</property>
+        <property name="stripNamespaces">true</property>
+        <property name="useStrictParser">false</property>
+        <property name="useStrictValidation">false</property>
+      </inboundProperties>
+      <outboundProperties>
+        <property name="convertLFtoCR">true</property>
+        <property name="handleRepetitions">false</property>
+        <property name="handleSubcomponents">false</property>
+        <property name="stripNamespaces">true</property>
+        <property name="useStrictParser">false</property>
+        <property name="useStrictValidation">false</property>
+      </outboundProperties>
+    </transformer>
+    <filter>
+      <rules/>
+    </filter>
+    <transportName>Channel Reader</transportName>
+    <mode>SOURCE</mode>
+    <enabled>true</enabled>
+    <version>2.2.1.5861</version>
+  </sourceConnector>
+  <destinationConnectors>
+    <connector>
+      <name>destination</name>
+      <properties>
+        <property name="DataType">LLP Sender</property>
+        <property name="ackTimeout">5000</property>
+        <property name="bufferSize">65536</property>
+        <property name="charEncoding">hex</property>
+        <property name="charsetEncoding">DEFAULT_ENCODING</property>
+        <property name="host">20.146.252.101</property>
+        <property name="keepSendSocketOpen">0</property>
+        <property name="maxRetryCount">1</property>
+        <property name="messageEnd">0x1C</property>
+        <property name="messageStart">0x0B</property>
+        <property name="port">50161</property>
+        <property name="processHl7AckResponse">1</property>
+        <property name="queueAckTimeout">1</property>
+        <property name="queuePollInterval">200</property>
+        <property name="reconnectMillisecs">10000</property>
+        <property name="recordSeparator">0x0D</property>
+        <property name="replyChannelId">sink</property>
+        <property name="rotateQueue">0</property>
+        <property name="segmentEnd">0x0D</property>
+        <property name="sendTimeout">5000</property>
+        <property name="tcpProtocolClassName">org.mule.providers.tcp.protocols.TcpProtocol</property>
+        <property name="template">${message.encodedData}</property>
+        <property name="usePersistentQueues">1</property>
+      </properties>
+      <transformer>
+        <steps>
+          <step>
+            <sequenceNumber>0</sequenceNumber>
+            <name>main</name>
+            <script>//Proccess segments according to message event
+try {
+    
+	var event = msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.2&apos;].toString();
+	// Redefine event according to rules
+	//A34-A40	Transform event type for merge
+	if (event == &apos;A34&apos;) {
+		event = &apos;A40&apos;;
+	}
+
+	//MSH-T1	Convert to an update status message if patient discharged as deceased
+	//			i.e. Patient Death Indicator is not blank
+
+	else if (event == &apos;A03&apos;){
+		if (hasData(msg[&apos;PID&apos;][&apos;PID.30&apos;][&apos;PID.30.1&apos;])) {
+			event = &apos;A08&apos;;
+		}
+	}
+
+   	//MRD 24/01: If A13 message set to A08 to ensure reverese DECEASED discharge is 
+   	//           communicated to CRIS
+	//MSH-T1b	Convert to an update status message if patient discharged as deceased
+	//			i.e. Patient Death Indicator is not blank
+
+	else if (event == &apos;A13&apos;) {
+		event = &apos;A08&apos;; 	
+	}
+
+	//Process segments according to event
+	switch (event) {
+		case &apos;A01&apos; : //Admit patient
+			//Transform required segments to temp
+			tranMSH();
+			tranEVN();	
+			tranPID();	
+			tranPV1();
+				
+			//Delete non-required segments
+			delete tmp[&apos;PD1&apos;];
+			delete tmp[&apos;MRG&apos;];
+			delete tmp[&apos;SCH&apos;]; 
+			break;	
+		
+		case &apos;A02&apos; : // Transfer patient	
+			//Transform required segments to temp
+			tranMSH();
+			tranEVN();		
+			tranPID();
+			tranPV1();
+			
+			//Delete non-required segments
+			delete tmp[&apos;PD1&apos;];
+			delete tmp[&apos;MRG&apos;];
+			delete tmp[&apos;SCH&apos;]; 
+			break;	
+		
+	    case &apos;A03&apos; : // Discharge patient	
+			//Transform required segments to temp
+			tranMSH();
+			tranEVN();			
+			tranPID();
+			
+			//Delete non-required segments
+			delete tmp[&apos;PD1&apos;];
+			delete tmp[&apos;PV1&apos;];
+			delete tmp[&apos;MRG&apos;];
+			delete tmp[&apos;SCH&apos;]; 
+			break;				
+
+		case &apos;A05&apos; : // Pre-admit patient
+			//Transform required segments to temp
+			//Transform required segments to temp
+			tranMSH();
+			tranEVN();		
+			tranPID();
+			tranPV1();
+			
+			//Delete non-required segments
+			delete tmp[&apos;PD1&apos;];
+			delete tmp[&apos;MRG&apos;];
+			delete tmp[&apos;SCH&apos;]; 
+			break;	
+
+		case &apos;A08&apos; : // Update patient information
+			//Transform required segments to temp
+			tranMSH();
+			tranEVN();			
+			tranPID();
+			tranPD1();
+			
+			//Delete non-required segments
+			delete tmp[&apos;PV1&apos;];
+			delete tmp[&apos;MRG&apos;];
+			delete tmp[&apos;SCH&apos;]; 
+			break;				
+
+	 	case &apos;A28&apos; : //Add person information
+			//Transform required segments to temp
+			tranMSH();
+			tranEVN();			
+			tranPID();
+			tranPD1();
+			
+			//Delete non-required segments
+			delete tmp[&apos;PV1&apos;];
+			delete tmp[&apos;MRG&apos;];
+			delete tmp[&apos;SCH&apos;]; 
+			break;				
+
+		case &apos;A31&apos; : // Update person information
+			//Transform required segments to temp
+			tranMSH();
+			tranEVN();			
+			tranPID();
+			tranPD1();
+			
+			//Delete non-required segments
+			delete tmp[&apos;PV1&apos;];
+			delete tmp[&apos;MRG&apos;];
+			delete tmp[&apos;SCH&apos;]; 
+			break;				
+
+
+    	case &apos;A40&apos; : // Merge patient
+			//Transform required segments to temp
+			tranMSH();	
+			tranEVN();	
+			tranPID();
+			tranMRG();
+
+			//Delete non-required segments
+			delete tmp[&apos;PD1&apos;]; 
+			delete tmp[&apos;PV1&apos;];
+			delete tmp[&apos;SCH&apos;]; 
+			break;
+
+		case &apos;S12&apos; : // Merge patient
+		case &apos;S13&apos; : // Merge patient
+			//Transform required segments to temp
+			tranMSH();	
+			tranPID();
+			tranSCH();
+
+			//Delete non-required segments
+			delete tmp[&apos;EVN&apos;]; 
+			delete tmp[&apos;PD1&apos;]; 
+			delete tmp[&apos;PV1&apos;];
+			delete tmp[&apos;MRG&apos;];
+			break;
+
+		default :
+			break;
+		}
+}
+catch (e) {
+		logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( Event Sorter ) &quot; + e.name + &quot;: &quot; + e.message);
+		//throw e;
+		stopChannel(channelId);
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>//Proccess segments according to message event
+try {
+    
+	var event = msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.2&apos;].toString();
+	// Redefine event according to rules
+	//A34-A40	Transform event type for merge
+	if (event == &apos;A34&apos;) {
+		event = &apos;A40&apos;;
+	}
+
+	//MSH-T1	Convert to an update status message if patient discharged as deceased
+	//			i.e. Patient Death Indicator is not blank
+
+	else if (event == &apos;A03&apos;){
+		if (hasData(msg[&apos;PID&apos;][&apos;PID.30&apos;][&apos;PID.30.1&apos;])) {
+			event = &apos;A08&apos;;
+		}
+	}
+
+   	//MRD 24/01: If A13 message set to A08 to ensure reverese DECEASED discharge is 
+   	//           communicated to CRIS
+	//MSH-T1b	Convert to an update status message if patient discharged as deceased
+	//			i.e. Patient Death Indicator is not blank
+
+	else if (event == &apos;A13&apos;) {
+		event = &apos;A08&apos;; 	
+	}
+
+	//Process segments according to event
+	switch (event) {
+		case &apos;A01&apos; : //Admit patient
+			//Transform required segments to temp
+			tranMSH();
+			tranEVN();	
+			tranPID();	
+			tranPV1();
+				
+			//Delete non-required segments
+			delete tmp[&apos;PD1&apos;];
+			delete tmp[&apos;MRG&apos;];
+			delete tmp[&apos;SCH&apos;]; 
+			break;	
+		
+		case &apos;A02&apos; : // Transfer patient	
+			//Transform required segments to temp
+			tranMSH();
+			tranEVN();		
+			tranPID();
+			tranPV1();
+			
+			//Delete non-required segments
+			delete tmp[&apos;PD1&apos;];
+			delete tmp[&apos;MRG&apos;];
+			delete tmp[&apos;SCH&apos;]; 
+			break;	
+		
+	    case &apos;A03&apos; : // Discharge patient	
+			//Transform required segments to temp
+			tranMSH();
+			tranEVN();			
+			tranPID();
+			
+			//Delete non-required segments
+			delete tmp[&apos;PD1&apos;];
+			delete tmp[&apos;PV1&apos;];
+			delete tmp[&apos;MRG&apos;];
+			delete tmp[&apos;SCH&apos;]; 
+			break;				
+
+		case &apos;A05&apos; : // Pre-admit patient
+			//Transform required segments to temp
+			//Transform required segments to temp
+			tranMSH();
+			tranEVN();		
+			tranPID();
+			tranPV1();
+			
+			//Delete non-required segments
+			delete tmp[&apos;PD1&apos;];
+			delete tmp[&apos;MRG&apos;];
+			delete tmp[&apos;SCH&apos;]; 
+			break;	
+
+		case &apos;A08&apos; : // Update patient information
+			//Transform required segments to temp
+			tranMSH();
+			tranEVN();			
+			tranPID();
+			tranPD1();
+			
+			//Delete non-required segments
+			delete tmp[&apos;PV1&apos;];
+			delete tmp[&apos;MRG&apos;];
+			delete tmp[&apos;SCH&apos;]; 
+			break;				
+
+	 	case &apos;A28&apos; : //Add person information
+			//Transform required segments to temp
+			tranMSH();
+			tranEVN();			
+			tranPID();
+			tranPD1();
+			
+			//Delete non-required segments
+			delete tmp[&apos;PV1&apos;];
+			delete tmp[&apos;MRG&apos;];
+			delete tmp[&apos;SCH&apos;]; 
+			break;				
+
+		case &apos;A31&apos; : // Update person information
+			//Transform required segments to temp
+			tranMSH();
+			tranEVN();			
+			tranPID();
+			tranPD1();
+			
+			//Delete non-required segments
+			delete tmp[&apos;PV1&apos;];
+			delete tmp[&apos;MRG&apos;];
+			delete tmp[&apos;SCH&apos;]; 
+			break;				
+
+
+    	case &apos;A40&apos; : // Merge patient
+			//Transform required segments to temp
+			tranMSH();	
+			tranEVN();	
+			tranPID();
+			tranMRG();
+
+			//Delete non-required segments
+			delete tmp[&apos;PD1&apos;]; 
+			delete tmp[&apos;PV1&apos;];
+			delete tmp[&apos;SCH&apos;]; 
+			break;
+
+		case &apos;S12&apos; : // Merge patient
+		case &apos;S13&apos; : // Merge patient
+			//Transform required segments to temp
+			tranMSH();	
+			tranPID();
+			tranSCH();
+
+			//Delete non-required segments
+			delete tmp[&apos;EVN&apos;]; 
+			delete tmp[&apos;PD1&apos;]; 
+			delete tmp[&apos;PV1&apos;];
+			delete tmp[&apos;MRG&apos;];
+			break;
+
+		default :
+			break;
+		}
+}
+catch (e) {
+		logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( Event Sorter ) &quot; + e.name + &quot;: &quot; + e.message);
+		//throw e;
+		stopChannel(channelId);
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>1</sequenceNumber>
+            <name>MSH</name>
+            <script>function tranMSH()  {
+	try {
+		//Pass all
+		tmp[&apos;MSH&apos;] = msg[&apos;MSH&apos;];
+		// set message event (see logic in main)
+		tmp[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.2&apos;] = event;
+		//MSH-T2	Change HL7 version number
+		tmp[&apos;MSH&apos;][&apos;MSH.12&apos;][&apos;MSH.12.1&apos;] = &quot;2.4&quot;;
+	}
+
+	catch (e) {
+    	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( tranMSH ) &quot; + e.name + &quot;: &quot; + e.message);
+		throw e;
+	}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>function tranMSH()  {
+	try {
+		//Pass all
+		tmp[&apos;MSH&apos;] = msg[&apos;MSH&apos;];
+		// set message event (see logic in main)
+		tmp[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.2&apos;] = event;
+		//MSH-T2	Change HL7 version number
+		tmp[&apos;MSH&apos;][&apos;MSH.12&apos;][&apos;MSH.12.1&apos;] = &quot;2.4&quot;;
+	}
+
+	catch (e) {
+    	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( tranMSH ) &quot; + e.name + &quot;: &quot; + e.message);
+		throw e;
+	}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>2</sequenceNumber>
+            <name>EVN</name>
+            <script>function tranEVN()  {
+	try {
+		//Pass all
+		tmp[&apos;EVN&apos;] = msg[&apos;EVN&apos;];
+		tmp[&apos;EVN&apos;][&apos;EVN.1&apos;][&apos;EVN.1.1&apos;] = event;
+
+		//EVN-T1	Translation event reason code (cs 285)
+		tmp[&apos;EVN&apos;][&apos;EVN.4&apos;][&apos;EVN.4.1&apos;] = &apos;&quot;&quot;&apos;;
+	}
+
+	catch (e)
+	{
+    	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( tranEVN ) &quot; + e.name + &quot;: &quot; + e.message);
+    	throw e;
+	}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>function tranEVN()  {
+	try {
+		//Pass all
+		tmp[&apos;EVN&apos;] = msg[&apos;EVN&apos;];
+		tmp[&apos;EVN&apos;][&apos;EVN.1&apos;][&apos;EVN.1.1&apos;] = event;
+
+		//EVN-T1	Translation event reason code (cs 285)
+		tmp[&apos;EVN&apos;][&apos;EVN.4&apos;][&apos;EVN.4.1&apos;] = &apos;&quot;&quot;&apos;;
+	}
+
+	catch (e)
+	{
+    	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( tranEVN ) &quot; + e.name + &quot;: &quot; + e.message);
+    	throw e;
+	}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>3</sequenceNumber>
+            <name>SCH</name>
+            <script>function tranSCH(){
+	try {
+		tmp[&apos;SCH&apos;][&apos;SCH.11&apos;][&apos;SCH.11.4&apos;] = msg[&apos;SCH&apos;][&apos;SCH.11&apos;][&apos;SCH.11.4&apos;].toString();
+	}
+
+	catch (e) {
+    	throw new Error(&quot; in tranPD1 &quot; + e.name + &quot;: &quot; + e.message);
+	}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>function tranSCH(){
+	try {
+		tmp[&apos;SCH&apos;][&apos;SCH.11&apos;][&apos;SCH.11.4&apos;] = msg[&apos;SCH&apos;][&apos;SCH.11&apos;][&apos;SCH.11.4&apos;].toString();
+	}
+
+	catch (e) {
+    	throw new Error(&quot; in tranPD1 &quot; + e.name + &quot;: &quot; + e.message);
+	}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>4</sequenceNumber>
+            <name>PID</name>
+            <script>function tranPID() {
+	try {
+		// Some working variables
+		var index=0;
+	
+	
+    	//Pass Set ID 
+		tmp[&apos;PID&apos;][&apos;PID.1&apos;][&apos;PID.1.1&apos;]=msg[&apos;PID&apos;][&apos;PID.1&apos;][&apos;PID.1.1&apos;].toString();
+
+
+		//PID-T2	Output NOC mrn and nhs number only in that order
+		tmp[&apos;PID&apos;][&apos;PID.3&apos;][0][&apos;PID.3.1&apos;]=&quot;RTH&quot; + getPID(msg[&apos;PID&apos;][&apos;PID.3&apos;],&apos;NOC-MRN&apos;,&apos;MRN&apos;,&apos;PID.3.4&apos;,&apos;PID.3.5&apos;,&apos;PID.3.1&apos;);
+		// MRD 17/01/11: HSS require asigning authority for ORH MRN of RTH01
+		tmp[&apos;PID&apos;][&apos;PID.3&apos;][0][&apos;PID.3.4&apos;]=&apos;RTH&apos;;
+		tmp[&apos;PID&apos;][&apos;PID.3&apos;][0][&apos;PID.3.5&apos;]=&apos;MR&apos;;
+		
+		// make nhs number 10 spaces if absent 
+		var nhsnumber=getPID(msg[&apos;PID&apos;][&apos;PID.3&apos;],&apos;NHSNBR&apos;,&apos;NHSNMBR&apos;,&apos;PID.3.4&apos;,&apos;PID.3.5&apos;,&apos;PID.3.1&apos;);
+		if (nhsnumber!=&apos;&apos;) {
+			tmp[&apos;PID&apos;][&apos;PID.3&apos;][1][&apos;PID.3.1&apos;]=nhsnumber;
+		}
+		else	{
+			tmp[&apos;PID&apos;][&apos;PID.3&apos;][1][&apos;PID.3.1&apos;]=&apos;          &apos;;
+		}
+		tmp[&apos;PID&apos;][&apos;PID.3&apos;][1][&apos;PID.3.4&apos;]=&apos;NHS&apos;;
+		tmp[&apos;PID&apos;][&apos;PID.3&apos;][1][&apos;PID.3.5&apos;]=&apos;NH&apos;;
+
+
+		//PID-T3	Prefix ORH MRN&apos;s with NACS code
+		//          *** NOT APPLICABLE for NOC RIS ***
+
+
+		//PID-T7	Only output &quot;CURRENT&quot; name
+		//PID-T8	Append given name with initial from middle name
+		index=findFirst(&apos;CURRENT&apos;,msg[&apos;PID&apos;][&apos;PID.5&apos;],&apos;PID.5.7&apos;);
+		if (index &gt; -1) {
+			tmp[&apos;PID&apos;][&apos;PID.5&apos;][0][&apos;PID.5.1&apos;]=msg[&apos;PID&apos;][&apos;PID.5&apos;][index][&apos;PID.5.1&apos;].toString();
+			tmp[&apos;PID&apos;][&apos;PID.5&apos;][0][&apos;PID.5.2&apos;]=msg[&apos;PID&apos;][&apos;PID.5&apos;][index][&apos;PID.5.2&apos;].toString();
+			// MRD 28/09/11 Ensure middlename is blank to avoid consfusion with &apos;two word&apos; forename
+			tmp[&apos;PID&apos;][&apos;PID.5&apos;][0][&apos;PID.5.3&apos;]=&quot;&quot;;
+			tmp[&apos;PID&apos;][&apos;PID.5&apos;][0][&apos;PID.5.5&apos;]=msg[&apos;PID&apos;][&apos;PID.5&apos;][index][&apos;PID.5.5&apos;].toString();
+		}	
+	
+
+		// Pass Date of Birth
+		tmp[&apos;PID&apos;][&apos;PID.7&apos;][&apos;PID.7.1&apos;]=msg[&apos;PID&apos;][&apos;PID.7&apos;][&apos;PID.7.1&apos;].toString();
+
+
+		//PID-T14	Translate sex code (cs 57)
+		
+    
+    	// MRD 12-01-11 get sex translation using switch statement pending translator bug fix 
+		var fromCode = msg[&apos;PID&apos;][&apos;PID.8&apos;][&apos;PID.8.1&apos;].toString();
+    	var resultOutput = &apos;&apos;;
+		switch(fromCode) {
+			case &apos;0&apos;: resultOutput = &apos;U&apos;;
+            	      break;
+        	case &apos;1&apos;: resultOutput = &apos;M&apos;;
+            	      break;
+        	case &apos;2&apos;: resultOutput = &apos;F&apos;;
+            	      break;
+			case &apos;Indeterminate&apos;: resultOutput = &apos;I&apos;;
+					  break;
+    	}			  	
+		tmp[&apos;PID&apos;][&apos;PID.8&apos;][&apos;PID.8.1&apos;] = resultOutput;
+ 
+
+
+		//PID-T17 	Transform addresses
+		//PID-T25	Transform EMAIL
+		index=findFirst(&apos;HOME&apos;,msg[&apos;PID&apos;][&apos;PID.11&apos;],&apos;PID.11.7&apos;);
+		if (index &gt; -1) {
+			tmp[&apos;PID&apos;][&apos;PID.11&apos;][&apos;PID.11.1&apos;] = msg[&apos;PID&apos;][&apos;PID.11&apos;][index][&apos;PID.11.1&apos;].toString();
+			tmp[&apos;PID&apos;][&apos;PID.11&apos;][&apos;PID.11.2&apos;] = msg[&apos;PID&apos;][&apos;PID.11&apos;][index][&apos;PID.11.2&apos;].toString();
+			tmp[&apos;PID&apos;][&apos;PID.11&apos;][&apos;PID.11.3&apos;] = msg[&apos;PID&apos;][&apos;PID.11&apos;][index][&apos;PID.11.8&apos;].toString();
+			tmp[&apos;PID&apos;][&apos;PID.11&apos;][&apos;PID.11.4&apos;] = msg[&apos;PID&apos;][&apos;PID.11&apos;][index][&apos;PID.11.3&apos;].toString();	
+			tmp[&apos;PID&apos;][&apos;PID.11&apos;][&apos;PID.11.5&apos;] = msg[&apos;PID&apos;][&apos;PID.11&apos;][index][&apos;PID.11.5&apos;].toString();
+		}	
+		index=findFirst(&apos;EMAIL&apos;,msg[&apos;PID&apos;][&apos;PID.11&apos;],&apos;PID.11.7&apos;);
+		if (index &gt; -1) {
+			tmp[&apos;PID&apos;][&apos;PID.13&apos;][0][&apos;PID.13.4&apos;]=msg[&apos;PID&apos;][&apos;PID.11&apos;][index][&apos;PID.11.1&apos;].toString();
+		}
+
+
+		//PID-T25	Transform phone values
+    	// MRD: 18/01/11
+		index=findFirst(&apos;HOME&apos;,msg[&apos;PID&apos;][&apos;PID.13&apos;],&apos;PID.13.2&apos;);
+   
+		if (index &gt; -1) {
+			// MRD: 10/02/11 Remove alpha characters from phone number 
+			//tmp[&apos;PID&apos;][&apos;PID.13&apos;][0][&apos;PID.13.1&apos;]=msg[&apos;PID&apos;][&apos;PID.13&apos;][index][&apos;PID.13.1&apos;].toString();
+			tmp[&apos;PID&apos;][&apos;PID.13&apos;][0][&apos;PID.13.1&apos;]=formatPhone(msg[&apos;PID&apos;][&apos;PID.13&apos;][index][&apos;PID.13.1&apos;].toString());
+		}
+		// MRD: 01/02/2011 Because the CM configuration is indeterminate check if MOBILE number 
+    	// actually provide as PAGERPRSNL then overwrite with MOBILE if present
+		index = findFirst(&apos;PAGERPRSNL&apos;,msg[&apos;PID&apos;][&apos;PID.13&apos;],&apos;PID.13.2&apos;);
+		if (index &gt; -1) {
+			// MRD: 10/02/11 Remove alpha characters from phone number 
+			//tmp[&apos;PID&apos;][&apos;PID.13&apos;][1][&apos;PID.13.1&apos;]=msg[&apos;PID&apos;][&apos;PID.13&apos;][index][&apos;PID.13.1&apos;].toString();
+			tmp[&apos;PID&apos;][&apos;PID.13&apos;][1][&apos;PID.13.1&apos;]=formatPhone(msg[&apos;PID&apos;][&apos;PID.13&apos;][index][&apos;PID.13.1&apos;].toString());
+		}
+
+    	index=findFirst(&apos;MOBILE&apos;,msg[&apos;PID&apos;][&apos;PID.13&apos;],&apos;PID.13.2&apos;);
+		if (index &gt; -1) {
+			// MRD: 10/02/11 Remove alpha characters from phone number 
+			tmp[&apos;PID&apos;][&apos;PID.13&apos;][1][&apos;PID.13.1&apos;]=formatPhone(msg[&apos;PID&apos;][&apos;PID.13&apos;][index][&apos;PID.13.1&apos;].toString());
+		}
+
+
+		//PID-T30 Pass first instance business number and email 
+		// MRD: 10/02/11 Remove alpha characters from phone number 
+    	tmp[&apos;PID&apos;][&apos;PID.14&apos;][&apos;PID.14.1&apos;]=formatPhone(msg[&apos;PID&apos;][&apos;PID.14&apos;][0][&apos;PID.14.1&apos;].toString());
+		tmp[&apos;PID&apos;][&apos;PID.14&apos;][&apos;PID.14.4&apos;]=msg[&apos;PID&apos;][&apos;PID.14&apos;][0][&apos;PID.14.4&apos;].toString();
+		tmp[&apos;PID&apos;][&apos;PID.14&apos;][&apos;PID.14.8&apos;]=msg[&apos;PID&apos;][&apos;PID.14&apos;][0][&apos;PID.14.8&apos;].toString();
+
+
+		//PID-T41	Translate ethnic group code 99
+		var ecode=msg[&apos;PID&apos;][&apos;PID.22&apos;][&apos;PID.22.1&apos;].toString();
+		if (ecode == &apos;99&apos;) {
+			tmp[&apos;PID&apos;][&apos;PID.22&apos;][&apos;PID.22.1&apos;]=&apos;&quot;&quot;&apos;;
+		}
+		else {
+			tmp[&apos;PID&apos;][&apos;PID.22&apos;][&apos;PID.22.1&apos;]=msg[&apos;PID&apos;][&apos;PID.22&apos;][&apos;PID.22.1&apos;].toString();
+		}
+
+
+		//PID-T46 Pass Patient Death dt_tm if death indicator is not blank 
+		//string=msg[&apos;PID&apos;][&apos;PID.30&apos;][&apos;PID.30.1&apos;].toString();
+		// MRD 21/01: PID.29 should be blanked if no patient death indicator 
+    	//            not if there is a patient death indicator      
+	
+		if (!hasData(msg[&apos;PID&apos;][&apos;PID.30&apos;][&apos;PID.30.1&apos;])) {
+			tmp[&apos;PID&apos;][&apos;PID.29&apos;][&apos;PID.29.1&apos;]=&apos;&quot;&quot;&apos;;
+		}
+		else {
+			tmp[&apos;PID&apos;][&apos;PID.29&apos;][&apos;PID.29.1&apos;]=msg[&apos;PID&apos;][&apos;PID.29&apos;][&apos;PID.29.1&apos;].toString();
+		}
+	}
+
+	catch (e)
+	{
+    	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( tranPID ) &quot; + e.name + &quot;: &quot; + e.message);
+    	throw e;
+	}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>function tranPID() {
+	try {
+		// Some working variables
+		var index=0;
+	
+	
+    	//Pass Set ID 
+		tmp[&apos;PID&apos;][&apos;PID.1&apos;][&apos;PID.1.1&apos;]=msg[&apos;PID&apos;][&apos;PID.1&apos;][&apos;PID.1.1&apos;].toString();
+
+
+		//PID-T2	Output NOC mrn and nhs number only in that order
+		tmp[&apos;PID&apos;][&apos;PID.3&apos;][0][&apos;PID.3.1&apos;]=&quot;RTH&quot; + getPID(msg[&apos;PID&apos;][&apos;PID.3&apos;],&apos;NOC-MRN&apos;,&apos;MRN&apos;,&apos;PID.3.4&apos;,&apos;PID.3.5&apos;,&apos;PID.3.1&apos;);
+		// MRD 17/01/11: HSS require asigning authority for ORH MRN of RTH01
+		tmp[&apos;PID&apos;][&apos;PID.3&apos;][0][&apos;PID.3.4&apos;]=&apos;RTH&apos;;
+		tmp[&apos;PID&apos;][&apos;PID.3&apos;][0][&apos;PID.3.5&apos;]=&apos;MR&apos;;
+		
+		// make nhs number 10 spaces if absent 
+		var nhsnumber=getPID(msg[&apos;PID&apos;][&apos;PID.3&apos;],&apos;NHSNBR&apos;,&apos;NHSNMBR&apos;,&apos;PID.3.4&apos;,&apos;PID.3.5&apos;,&apos;PID.3.1&apos;);
+		if (nhsnumber!=&apos;&apos;) {
+			tmp[&apos;PID&apos;][&apos;PID.3&apos;][1][&apos;PID.3.1&apos;]=nhsnumber;
+		}
+		else	{
+			tmp[&apos;PID&apos;][&apos;PID.3&apos;][1][&apos;PID.3.1&apos;]=&apos;          &apos;;
+		}
+		tmp[&apos;PID&apos;][&apos;PID.3&apos;][1][&apos;PID.3.4&apos;]=&apos;NHS&apos;;
+		tmp[&apos;PID&apos;][&apos;PID.3&apos;][1][&apos;PID.3.5&apos;]=&apos;NH&apos;;
+
+
+		//PID-T3	Prefix ORH MRN&apos;s with NACS code
+		//          *** NOT APPLICABLE for NOC RIS ***
+
+
+		//PID-T7	Only output &quot;CURRENT&quot; name
+		//PID-T8	Append given name with initial from middle name
+		index=findFirst(&apos;CURRENT&apos;,msg[&apos;PID&apos;][&apos;PID.5&apos;],&apos;PID.5.7&apos;);
+		if (index &gt; -1) {
+			tmp[&apos;PID&apos;][&apos;PID.5&apos;][0][&apos;PID.5.1&apos;]=msg[&apos;PID&apos;][&apos;PID.5&apos;][index][&apos;PID.5.1&apos;].toString();
+			tmp[&apos;PID&apos;][&apos;PID.5&apos;][0][&apos;PID.5.2&apos;]=msg[&apos;PID&apos;][&apos;PID.5&apos;][index][&apos;PID.5.2&apos;].toString();
+			// MRD 28/09/11 Ensure middlename is blank to avoid consfusion with &apos;two word&apos; forename
+			tmp[&apos;PID&apos;][&apos;PID.5&apos;][0][&apos;PID.5.3&apos;]=&quot;&quot;;
+			tmp[&apos;PID&apos;][&apos;PID.5&apos;][0][&apos;PID.5.5&apos;]=msg[&apos;PID&apos;][&apos;PID.5&apos;][index][&apos;PID.5.5&apos;].toString();
+		}	
+	
+
+		// Pass Date of Birth
+		tmp[&apos;PID&apos;][&apos;PID.7&apos;][&apos;PID.7.1&apos;]=msg[&apos;PID&apos;][&apos;PID.7&apos;][&apos;PID.7.1&apos;].toString();
+
+
+		//PID-T14	Translate sex code (cs 57)
+		
+    
+    	// MRD 12-01-11 get sex translation using switch statement pending translator bug fix 
+		var fromCode = msg[&apos;PID&apos;][&apos;PID.8&apos;][&apos;PID.8.1&apos;].toString();
+    	var resultOutput = &apos;&apos;;
+		switch(fromCode) {
+			case &apos;0&apos;: resultOutput = &apos;U&apos;;
+            	      break;
+        	case &apos;1&apos;: resultOutput = &apos;M&apos;;
+            	      break;
+        	case &apos;2&apos;: resultOutput = &apos;F&apos;;
+            	      break;
+			case &apos;Indeterminate&apos;: resultOutput = &apos;I&apos;;
+					  break;
+    	}			  	
+		tmp[&apos;PID&apos;][&apos;PID.8&apos;][&apos;PID.8.1&apos;] = resultOutput;
+ 
+
+
+		//PID-T17 	Transform addresses
+		//PID-T25	Transform EMAIL
+		index=findFirst(&apos;HOME&apos;,msg[&apos;PID&apos;][&apos;PID.11&apos;],&apos;PID.11.7&apos;);
+		if (index &gt; -1) {
+			tmp[&apos;PID&apos;][&apos;PID.11&apos;][&apos;PID.11.1&apos;] = msg[&apos;PID&apos;][&apos;PID.11&apos;][index][&apos;PID.11.1&apos;].toString();
+			tmp[&apos;PID&apos;][&apos;PID.11&apos;][&apos;PID.11.2&apos;] = msg[&apos;PID&apos;][&apos;PID.11&apos;][index][&apos;PID.11.2&apos;].toString();
+			tmp[&apos;PID&apos;][&apos;PID.11&apos;][&apos;PID.11.3&apos;] = msg[&apos;PID&apos;][&apos;PID.11&apos;][index][&apos;PID.11.8&apos;].toString();
+			tmp[&apos;PID&apos;][&apos;PID.11&apos;][&apos;PID.11.4&apos;] = msg[&apos;PID&apos;][&apos;PID.11&apos;][index][&apos;PID.11.3&apos;].toString();	
+			tmp[&apos;PID&apos;][&apos;PID.11&apos;][&apos;PID.11.5&apos;] = msg[&apos;PID&apos;][&apos;PID.11&apos;][index][&apos;PID.11.5&apos;].toString();
+		}	
+		index=findFirst(&apos;EMAIL&apos;,msg[&apos;PID&apos;][&apos;PID.11&apos;],&apos;PID.11.7&apos;);
+		if (index &gt; -1) {
+			tmp[&apos;PID&apos;][&apos;PID.13&apos;][0][&apos;PID.13.4&apos;]=msg[&apos;PID&apos;][&apos;PID.11&apos;][index][&apos;PID.11.1&apos;].toString();
+		}
+
+
+		//PID-T25	Transform phone values
+    	// MRD: 18/01/11
+		index=findFirst(&apos;HOME&apos;,msg[&apos;PID&apos;][&apos;PID.13&apos;],&apos;PID.13.2&apos;);
+   
+		if (index &gt; -1) {
+			// MRD: 10/02/11 Remove alpha characters from phone number 
+			//tmp[&apos;PID&apos;][&apos;PID.13&apos;][0][&apos;PID.13.1&apos;]=msg[&apos;PID&apos;][&apos;PID.13&apos;][index][&apos;PID.13.1&apos;].toString();
+			tmp[&apos;PID&apos;][&apos;PID.13&apos;][0][&apos;PID.13.1&apos;]=formatPhone(msg[&apos;PID&apos;][&apos;PID.13&apos;][index][&apos;PID.13.1&apos;].toString());
+		}
+		// MRD: 01/02/2011 Because the CM configuration is indeterminate check if MOBILE number 
+    	// actually provide as PAGERPRSNL then overwrite with MOBILE if present
+		index = findFirst(&apos;PAGERPRSNL&apos;,msg[&apos;PID&apos;][&apos;PID.13&apos;],&apos;PID.13.2&apos;);
+		if (index &gt; -1) {
+			// MRD: 10/02/11 Remove alpha characters from phone number 
+			//tmp[&apos;PID&apos;][&apos;PID.13&apos;][1][&apos;PID.13.1&apos;]=msg[&apos;PID&apos;][&apos;PID.13&apos;][index][&apos;PID.13.1&apos;].toString();
+			tmp[&apos;PID&apos;][&apos;PID.13&apos;][1][&apos;PID.13.1&apos;]=formatPhone(msg[&apos;PID&apos;][&apos;PID.13&apos;][index][&apos;PID.13.1&apos;].toString());
+		}
+
+    	index=findFirst(&apos;MOBILE&apos;,msg[&apos;PID&apos;][&apos;PID.13&apos;],&apos;PID.13.2&apos;);
+		if (index &gt; -1) {
+			// MRD: 10/02/11 Remove alpha characters from phone number 
+			tmp[&apos;PID&apos;][&apos;PID.13&apos;][1][&apos;PID.13.1&apos;]=formatPhone(msg[&apos;PID&apos;][&apos;PID.13&apos;][index][&apos;PID.13.1&apos;].toString());
+		}
+
+
+		//PID-T30 Pass first instance business number and email 
+		// MRD: 10/02/11 Remove alpha characters from phone number 
+    	tmp[&apos;PID&apos;][&apos;PID.14&apos;][&apos;PID.14.1&apos;]=formatPhone(msg[&apos;PID&apos;][&apos;PID.14&apos;][0][&apos;PID.14.1&apos;].toString());
+		tmp[&apos;PID&apos;][&apos;PID.14&apos;][&apos;PID.14.4&apos;]=msg[&apos;PID&apos;][&apos;PID.14&apos;][0][&apos;PID.14.4&apos;].toString();
+		tmp[&apos;PID&apos;][&apos;PID.14&apos;][&apos;PID.14.8&apos;]=msg[&apos;PID&apos;][&apos;PID.14&apos;][0][&apos;PID.14.8&apos;].toString();
+
+
+		//PID-T41	Translate ethnic group code 99
+		var ecode=msg[&apos;PID&apos;][&apos;PID.22&apos;][&apos;PID.22.1&apos;].toString();
+		if (ecode == &apos;99&apos;) {
+			tmp[&apos;PID&apos;][&apos;PID.22&apos;][&apos;PID.22.1&apos;]=&apos;&quot;&quot;&apos;;
+		}
+		else {
+			tmp[&apos;PID&apos;][&apos;PID.22&apos;][&apos;PID.22.1&apos;]=msg[&apos;PID&apos;][&apos;PID.22&apos;][&apos;PID.22.1&apos;].toString();
+		}
+
+
+		//PID-T46 Pass Patient Death dt_tm if death indicator is not blank 
+		//string=msg[&apos;PID&apos;][&apos;PID.30&apos;][&apos;PID.30.1&apos;].toString();
+		// MRD 21/01: PID.29 should be blanked if no patient death indicator 
+    	//            not if there is a patient death indicator      
+	
+		if (!hasData(msg[&apos;PID&apos;][&apos;PID.30&apos;][&apos;PID.30.1&apos;])) {
+			tmp[&apos;PID&apos;][&apos;PID.29&apos;][&apos;PID.29.1&apos;]=&apos;&quot;&quot;&apos;;
+		}
+		else {
+			tmp[&apos;PID&apos;][&apos;PID.29&apos;][&apos;PID.29.1&apos;]=msg[&apos;PID&apos;][&apos;PID.29&apos;][&apos;PID.29.1&apos;].toString();
+		}
+	}
+
+	catch (e)
+	{
+    	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( tranPID ) &quot; + e.name + &quot;: &quot; + e.message);
+    	throw e;
+	}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>5</sequenceNumber>
+            <name>PD1</name>
+            <script>function tranPD1(){
+
+	try {
+		//MRD 10/03/11 CM may not send PD1 segment in A28!
+		if(hasData(msg[&apos;PD1&apos;])) {
+				//Pass Organiser ID 
+				//MRD 27/01/11 CM may pass multiple aliases for pracice in repeating PD1.3 sequence
+				tmp[&apos;PD1&apos;][&apos;PD1.3&apos;][&apos;PD1.3.3&apos;]=msg[&apos;PD1&apos;][&apos;PD1.3&apos;][0][&apos;PD1.3.3&apos;].toString();
+				//Pass Physician ID
+				//MRD 27/01/11 CM may pass multiple aliases for gp in repeating PD1.4 sequence
+        		// Assigning authority/type is not always supplied so take first one (TI outstanding)
+				//tmp[&apos;PD1&apos;][&apos;PD1.4&apos;][&apos;PD1.4.1&apos;]=msg[&apos;PD1&apos;][&apos;PD1.4&apos;][&apos;PD1.4.1&apos;].toString();
+				//MRD 23/03/11 PD1.4 is optional
+				if(hasData(msg[&apos;PD1&apos;][&apos;PD1.4&apos;])){
+					tmp[&apos;PD1&apos;][&apos;PD1.4&apos;][&apos;PD1.4.1&apos;]=msg[&apos;PD1&apos;][&apos;PD1.4&apos;][0][&apos;PD1.4.1&apos;].toString();
+				}
+		}
+	}
+
+	catch (e) {
+    	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( tranPD1 ) &quot; + e.name + &quot;: &quot; + e.message);
+		throw e;
+	}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>function tranPD1(){
+
+	try {
+		//MRD 10/03/11 CM may not send PD1 segment in A28!
+		if(hasData(msg[&apos;PD1&apos;])) {
+				//Pass Organiser ID 
+				//MRD 27/01/11 CM may pass multiple aliases for pracice in repeating PD1.3 sequence
+				tmp[&apos;PD1&apos;][&apos;PD1.3&apos;][&apos;PD1.3.3&apos;]=msg[&apos;PD1&apos;][&apos;PD1.3&apos;][0][&apos;PD1.3.3&apos;].toString();
+				//Pass Physician ID
+				//MRD 27/01/11 CM may pass multiple aliases for gp in repeating PD1.4 sequence
+        		// Assigning authority/type is not always supplied so take first one (TI outstanding)
+				//tmp[&apos;PD1&apos;][&apos;PD1.4&apos;][&apos;PD1.4.1&apos;]=msg[&apos;PD1&apos;][&apos;PD1.4&apos;][&apos;PD1.4.1&apos;].toString();
+				//MRD 23/03/11 PD1.4 is optional
+				if(hasData(msg[&apos;PD1&apos;][&apos;PD1.4&apos;])){
+					tmp[&apos;PD1&apos;][&apos;PD1.4&apos;][&apos;PD1.4.1&apos;]=msg[&apos;PD1&apos;][&apos;PD1.4&apos;][0][&apos;PD1.4.1&apos;].toString();
+				}
+		}
+	}
+
+	catch (e) {
+    	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( tranPD1 ) &quot; + e.name + &quot;: &quot; + e.message);
+		throw e;
+	}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>6</sequenceNumber>
+            <name>PV1</name>
+            <script>function tranPV1() {
+/// if (eventValid([&apos;A01&apos;,&apos;A02&apos;,&apos;A05&apos;],&apos;ADT&apos;)) {
+
+	try {
+		
+		// put the facility id onto the channel map
+		channelMap.put(&quot;facility&quot;,msg[&apos;PV1&apos;][&apos;PV1.3&apos;][&apos;PV1.3.4&apos;].toString());
+
+		//Pass Set ID 
+		tmp[&apos;PV1&apos;][&apos;PV1.1&apos;][&apos;PV1.1.1&apos;]=msg[&apos;PV1&apos;][&apos;PV1.1&apos;][&apos;PV1.1.1&apos;].toString();
+
+		//PV1-T3 Pass point of service location or Facility ID if blank
+		//MD 31/01/2011: Should test PV1.3.1 not PID.30.1 for blank
+		//if (Blank(msg[&apos;PID&apos;][&apos;PID.30&apos;][&apos;PID.30.1&apos;].toString())) {
+		if (Blank(msg[&apos;PV1&apos;][&apos;PV1.3&apos;][0][&apos;PV1.3.1&apos;].toString())) {
+			tmp[&apos;PV1&apos;][&apos;PV1.3&apos;][0][&apos;PV1.3.1&apos;]=msg[&apos;PV1&apos;][&apos;PV1.3&apos;][0][&apos;PV1.3.4&apos;].toString();
+		}
+		else {
+			tmp[&apos;PV1&apos;][&apos;PV1.3&apos;][0][&apos;PV1.3.1&apos;]=msg[&apos;PV1&apos;][&apos;PV1.3&apos;][0][&apos;PV1.3.1&apos;].toString();
+		}
+	
+		//PV1-T14 Set consulting doctor from attending doctor
+		//MRD 10/04/13 
+        //tmp[&apos;PV1&apos;][&apos;PV1.9&apos;][0][&apos;PV1.9.1&apos;]=msg[&apos;PV1&apos;][&apos;PV1.7&apos;][0][&apos;PV1.7.1&apos;].toString(); 
+		for each (cons in msg[&apos;PV1&apos;][&apos;PV1.7&apos;] )
+		{
+			var auth = cons[&apos;PV1.7.9&apos;].toString();
+			if (auth == &quot;NHSCONSULTNBR&quot; ) {
+				var consNumb = cons[&apos;PV1.7.1&apos;].toString();
+				tmp[&apos;PV1&apos;][&apos;PV1.9&apos;][&apos;PV1.9.1&apos;] = consNumb;
+				break;
+			}
+		}
+		//Pass Admit Date/Time
+		// MRD 21/01: Default date time if not supplied
+		// if(!hasData(msg[&apos;PV1&apos;][&apos;PV1.44&apos;][&apos;PV1.44.1&apos;])) tmp[&apos;PV1&apos;][&apos;PV1.44&apos;][&apos;PV1.44.1&apos;] = &quot;19000101010000&quot;;
+		// MRD 02/02: Default admit D/T to event D/T if not porvided (some A05 messages have no Admit DT)
+        // Use the event date time.
+		if(!hasData(msg[&apos;PV1&apos;][&apos;PV1.44&apos;][&apos;PV1.44.1&apos;])) 
+            tmp[&apos;PV1&apos;][&apos;PV1.44&apos;][&apos;PV1.44.1&apos;] = msg[&apos;EVN&apos;][&apos;EVN.2&apos;][&apos;EVN.2.1&apos;].toString();
+        else 
+	    	tmp[&apos;PV1&apos;][&apos;PV1.44&apos;][&apos;PV1.44.1&apos;] = msg[&apos;PV1&apos;][&apos;PV1.44&apos;][&apos;PV1.44.1&apos;].toString();
+	
+	}
+
+	catch (e) {
+    	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( tranPV1 ) &quot; + e.name + &quot;: &quot; + e.message);
+		throw e;
+	}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>function tranPV1() {
+/// if (eventValid([&apos;A01&apos;,&apos;A02&apos;,&apos;A05&apos;],&apos;ADT&apos;)) {
+
+	try {
+		
+		// put the facility id onto the channel map
+		channelMap.put(&quot;facility&quot;,msg[&apos;PV1&apos;][&apos;PV1.3&apos;][&apos;PV1.3.4&apos;].toString());
+
+		//Pass Set ID 
+		tmp[&apos;PV1&apos;][&apos;PV1.1&apos;][&apos;PV1.1.1&apos;]=msg[&apos;PV1&apos;][&apos;PV1.1&apos;][&apos;PV1.1.1&apos;].toString();
+
+		//PV1-T3 Pass point of service location or Facility ID if blank
+		//MD 31/01/2011: Should test PV1.3.1 not PID.30.1 for blank
+		//if (Blank(msg[&apos;PID&apos;][&apos;PID.30&apos;][&apos;PID.30.1&apos;].toString())) {
+		if (Blank(msg[&apos;PV1&apos;][&apos;PV1.3&apos;][0][&apos;PV1.3.1&apos;].toString())) {
+			tmp[&apos;PV1&apos;][&apos;PV1.3&apos;][0][&apos;PV1.3.1&apos;]=msg[&apos;PV1&apos;][&apos;PV1.3&apos;][0][&apos;PV1.3.4&apos;].toString();
+		}
+		else {
+			tmp[&apos;PV1&apos;][&apos;PV1.3&apos;][0][&apos;PV1.3.1&apos;]=msg[&apos;PV1&apos;][&apos;PV1.3&apos;][0][&apos;PV1.3.1&apos;].toString();
+		}
+	
+		//PV1-T14 Set consulting doctor from attending doctor
+		//MRD 10/04/13 
+        //tmp[&apos;PV1&apos;][&apos;PV1.9&apos;][0][&apos;PV1.9.1&apos;]=msg[&apos;PV1&apos;][&apos;PV1.7&apos;][0][&apos;PV1.7.1&apos;].toString(); 
+		for each (cons in msg[&apos;PV1&apos;][&apos;PV1.7&apos;] )
+		{
+			var auth = cons[&apos;PV1.7.9&apos;].toString();
+			if (auth == &quot;NHSCONSULTNBR&quot; ) {
+				var consNumb = cons[&apos;PV1.7.1&apos;].toString();
+				tmp[&apos;PV1&apos;][&apos;PV1.9&apos;][&apos;PV1.9.1&apos;] = consNumb;
+				break;
+			}
+		}
+		//Pass Admit Date/Time
+		// MRD 21/01: Default date time if not supplied
+		// if(!hasData(msg[&apos;PV1&apos;][&apos;PV1.44&apos;][&apos;PV1.44.1&apos;])) tmp[&apos;PV1&apos;][&apos;PV1.44&apos;][&apos;PV1.44.1&apos;] = &quot;19000101010000&quot;;
+		// MRD 02/02: Default admit D/T to event D/T if not porvided (some A05 messages have no Admit DT)
+        // Use the event date time.
+		if(!hasData(msg[&apos;PV1&apos;][&apos;PV1.44&apos;][&apos;PV1.44.1&apos;])) 
+            tmp[&apos;PV1&apos;][&apos;PV1.44&apos;][&apos;PV1.44.1&apos;] = msg[&apos;EVN&apos;][&apos;EVN.2&apos;][&apos;EVN.2.1&apos;].toString();
+        else 
+	    	tmp[&apos;PV1&apos;][&apos;PV1.44&apos;][&apos;PV1.44.1&apos;] = msg[&apos;PV1&apos;][&apos;PV1.44&apos;][&apos;PV1.44.1&apos;].toString();
+	
+	}
+
+	catch (e) {
+    	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( tranPV1 ) &quot; + e.name + &quot;: &quot; + e.message);
+		throw e;
+	}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>7</sequenceNumber>
+            <name>MRG</name>
+            <script>function tranMRG() {
+
+	try {
+		
+		//PID-T2	Output NOC mrn and nhs number only in that order
+		//PID-T3 	Prefix ORH MRN&apos;s with NACS code
+		//MRD 13-12-2011 MRN Must be prefixed with RTH and assiging authority and identifier type set for ORH mirror
+		tmp[&apos;MRG&apos;][&apos;MRG.1&apos;][0][&apos;MRG.1.1&apos;]= &apos;RTH&apos; + getPID(msg[&apos;MRG&apos;][&apos;MRG.1&apos;],&apos;NOC-MRN&apos;,&apos;MRN&apos;,&apos;MRG.1.4&apos;,&apos;MRG.1.5&apos;,&apos;MRG.1.1&apos;);
+		tmp[&apos;MRG&apos;][&apos;MRG.1&apos;][0][&apos;MRG.1.4&apos;]=&apos;RTH&apos;;
+		tmp[&apos;MRG&apos;][&apos;MRG.1&apos;][0][&apos;MRG.1.5&apos;]=&apos;MR&apos;;
+		// make nhs number 10 spaces if absent 
+		var nhsnumber=getPID(msg[&apos;MRG&apos;][&apos;MRG.1&apos;],&apos;NHSNBR&apos;,&apos;NHSNMBR&apos;,&apos;MRG.1.4&apos;,&apos;MRG.1.5&apos;,&apos;MRG.1.1&apos;);
+		if (!Blank(nhsnumber)) {
+			tmp[&apos;MRG&apos;][&apos;MRG.1&apos;][1][&apos;MRG.1.1&apos;]=nhsnumber;
+		}
+		else	{
+			tmp[&apos;MRG&apos;][&apos;MRG.1&apos;][1][&apos;MRG.1.1&apos;]=&apos;          &apos;;
+		}
+		tmp[&apos;MRG&apos;][&apos;MRG.1&apos;][1][&apos;MRG.1.4&apos;]=&apos;NHS&apos;;
+		tmp[&apos;MRG&apos;][&apos;MRG.1&apos;][1][&apos;MRG.1.5&apos;]=&apos;NH&apos;;
+	}
+
+	catch (e) {
+    	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( tranMRG ) &quot; + e.name + &quot;: &quot; + e.message);
+		throw e;
+	}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>function tranMRG() {
+
+	try {
+		
+		//PID-T2	Output NOC mrn and nhs number only in that order
+		//PID-T3 	Prefix ORH MRN&apos;s with NACS code
+		//MRD 13-12-2011 MRN Must be prefixed with RTH and assiging authority and identifier type set for ORH mirror
+		tmp[&apos;MRG&apos;][&apos;MRG.1&apos;][0][&apos;MRG.1.1&apos;]= &apos;RTH&apos; + getPID(msg[&apos;MRG&apos;][&apos;MRG.1&apos;],&apos;NOC-MRN&apos;,&apos;MRN&apos;,&apos;MRG.1.4&apos;,&apos;MRG.1.5&apos;,&apos;MRG.1.1&apos;);
+		tmp[&apos;MRG&apos;][&apos;MRG.1&apos;][0][&apos;MRG.1.4&apos;]=&apos;RTH&apos;;
+		tmp[&apos;MRG&apos;][&apos;MRG.1&apos;][0][&apos;MRG.1.5&apos;]=&apos;MR&apos;;
+		// make nhs number 10 spaces if absent 
+		var nhsnumber=getPID(msg[&apos;MRG&apos;][&apos;MRG.1&apos;],&apos;NHSNBR&apos;,&apos;NHSNMBR&apos;,&apos;MRG.1.4&apos;,&apos;MRG.1.5&apos;,&apos;MRG.1.1&apos;);
+		if (!Blank(nhsnumber)) {
+			tmp[&apos;MRG&apos;][&apos;MRG.1&apos;][1][&apos;MRG.1.1&apos;]=nhsnumber;
+		}
+		else	{
+			tmp[&apos;MRG&apos;][&apos;MRG.1&apos;][1][&apos;MRG.1.1&apos;]=&apos;          &apos;;
+		}
+		tmp[&apos;MRG&apos;][&apos;MRG.1&apos;][1][&apos;MRG.1.4&apos;]=&apos;NHS&apos;;
+		tmp[&apos;MRG&apos;][&apos;MRG.1&apos;][1][&apos;MRG.1.5&apos;]=&apos;NH&apos;;
+	}
+
+	catch (e) {
+    	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( tranMRG ) &quot; + e.name + &quot;: &quot; + e.message);
+		throw e;
+	}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>8</sequenceNumber>
+            <name>findFirst Function</name>
+            <script>// Finds the first element in sequence identified by type label &apos;string&apos;
+// Throws custom error if code exception 
+function findFirst(label,SEGn,sub) {
+	var idx = -1;
+
+	try {
+		if (SEGn !=&apos;&apos;) {
+			var count = SEGn.length();		
+			for (var i=0; i &lt; count; i++) {
+				if (SEGn[i].length() &gt; 0) {
+					// MRD 19/01/11
+					//if (SEGn[sub][i].toString() == string) {			
+					if (SEGn[i][sub].toString() == label) {
+							idx=i;
+							break;
+					}
+				}
+			}
+		}
+        return idx;
+	}
+	catch (e) {
+		logger.error(&quot;Channel &quot; + getChannelNameFromID(channelId) + &quot; ( findFirst ) &quot; + label + &quot; &quot; + e.name + &quot;: &quot; + e.message);
+		throw new Error(&quot;Channel &quot; + getChannelName() + &quot; ( findFirst ) &quot; + label + &quot; &quot; + e.name + &quot;: &quot; + e.message);
+	}
+	//finally {
+	//	if(ok) return idx;
+	//	else throw new Error(&apos;findFirstError&apos;);
+	//}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// Finds the first element in sequence identified by type label &apos;string&apos;
+// Throws custom error if code exception 
+function findFirst(label,SEGn,sub) {
+	var idx = -1;
+
+	try {
+		if (SEGn !=&apos;&apos;) {
+			var count = SEGn.length();		
+			for (var i=0; i &lt; count; i++) {
+				if (SEGn[i].length() &gt; 0) {
+					// MRD 19/01/11
+					//if (SEGn[sub][i].toString() == string) {			
+					if (SEGn[i][sub].toString() == label) {
+							idx=i;
+							break;
+					}
+				}
+			}
+		}
+        return idx;
+	}
+	catch (e) {
+		logger.error(&quot;Channel &quot; + getChannelNameFromID(channelId) + &quot; ( findFirst ) &quot; + label + &quot; &quot; + e.name + &quot;: &quot; + e.message);
+		throw new Error(&quot;Channel &quot; + getChannelName() + &quot; ( findFirst ) &quot; + label + &quot; &quot; + e.name + &quot;: &quot; + e.message);
+	}
+	//finally {
+	//	if(ok) return idx;
+	//	else throw new Error(&apos;findFirstError&apos;);
+	//}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>9</sequenceNumber>
+            <name>getPID function</name>
+            <script>//Gets id from PID3 by assiginer code and type
+//Throws custom error if code exception
+function getPID(SEGn, assigner_code, type_code,pos1,pos2,pos3) {
+	var pid = &apos;&apos;;
+	try {
+		var pidcount = SEGn.length();
+		for(var index = 0; index &lt; pidcount; index++)
+		{
+			if(SEGn[pos1][index].toString() == assigner_code &amp;&amp; SEGn[pos2][index].toString() == type_code) 
+			{
+				pid = SEGn[pos3][index].toString();
+				break;
+			}
+
+		}
+		return pid;
+	}
+	catch (e) {
+    	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( getPID ) &quot; + e.name + &quot;: &quot; + e.message);
+        // MRD: 19/01/11
+		throw new Error(&quot;Channel &quot; + getChannelName() + &quot; ( getPID for &quot; + type_code +  &quot; ) &quot; + e.name + &quot;: &quot; + e.message);
+		//stopChannel(channelId);
+		//logger.error(&quot;Channel &quot; + getChannelName() + &quot; has been stopped&quot;);
+	}
+	// MRD: 19/01/11
+	//  finally {
+	//	return pid;
+	//}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>//Gets id from PID3 by assiginer code and type
+//Throws custom error if code exception
+function getPID(SEGn, assigner_code, type_code,pos1,pos2,pos3) {
+	var pid = &apos;&apos;;
+	try {
+		var pidcount = SEGn.length();
+		for(var index = 0; index &lt; pidcount; index++)
+		{
+			if(SEGn[pos1][index].toString() == assigner_code &amp;&amp; SEGn[pos2][index].toString() == type_code) 
+			{
+				pid = SEGn[pos3][index].toString();
+				break;
+			}
+
+		}
+		return pid;
+	}
+	catch (e) {
+    	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( getPID ) &quot; + e.name + &quot;: &quot; + e.message);
+        // MRD: 19/01/11
+		throw new Error(&quot;Channel &quot; + getChannelName() + &quot; ( getPID for &quot; + type_code +  &quot; ) &quot; + e.name + &quot;: &quot; + e.message);
+		//stopChannel(channelId);
+		//logger.error(&quot;Channel &quot; + getChannelName() + &quot; has been stopped&quot;);
+	}
+	// MRD: 19/01/11
+	//  finally {
+	//	return pid;
+	//}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>10</sequenceNumber>
+            <name>Blank function</name>
+            <script>// Returns true if string is empty or string is double quotes
+// Throws custom error if code exception
+function Blank(string) {
+		var rc = false;
+		try {
+			if ((string==&apos;&apos;)||(string==&apos;&quot;&quot;&apos;)) {
+				rc = true;
+			}
+			return rc;
+		}
+	catch (e) {
+    	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( Blank ) &quot; + e.name + &quot;: &quot; + e.message);	
+		//MRD: 19/01/11
+		throw Error(&quot;Channel &quot; + getChannelName() + &quot; ( Blank ) &quot; + e.name + &quot;: &quot; + e.message);
+		//stopChannel(channelId);
+		//logger.error(&quot;Channel &quot; + getChannelName() + &quot; has been stopped&quot;);
+	}
+	//finally {
+	//	return rc;
+	//}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// Returns true if string is empty or string is double quotes
+// Throws custom error if code exception
+function Blank(string) {
+		var rc = false;
+		try {
+			if ((string==&apos;&apos;)||(string==&apos;&quot;&quot;&apos;)) {
+				rc = true;
+			}
+			return rc;
+		}
+	catch (e) {
+    	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( Blank ) &quot; + e.name + &quot;: &quot; + e.message);	
+		//MRD: 19/01/11
+		throw Error(&quot;Channel &quot; + getChannelName() + &quot; ( Blank ) &quot; + e.name + &quot;: &quot; + e.message);
+		//stopChannel(channelId);
+		//logger.error(&quot;Channel &quot; + getChannelName() + &quot; has been stopped&quot;);
+	}
+	//finally {
+	//	return rc;
+	//}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>11</sequenceNumber>
+            <name>hasData function</name>
+            <script>// Throws custom error if code exception
+function hasData(xmlNode) {
+	var rc = false;
+	try {
+		//MD 21/01: Length is not a method 
+		if  (xmlNode.length() &gt; 0) {
+			string=xmlNode.toString();
+			if ((string!=&apos;&apos;)&amp;&amp;(string!=&apos;&quot;&quot;&apos;)) {
+			rc=true
+			}
+		}
+		return rc;
+	}	
+
+	catch (e) {
+		logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( hasData ) &quot; + e.name + &quot;: &quot; + e.message);
+		
+		throw Error(&quot;Channel &quot; + getChannelName() + &quot; ( hasData ) &quot; + e.name + &quot;: &quot; + e.message);
+		// MRD: 19/01/11
+		//stopChannel(channelId);
+		//logger.error(&quot;Channel &quot; + getChannelName() + &quot; has been stopped&quot;);
+	}
+
+//	finally {
+//		return rc;
+//	}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// Throws custom error if code exception
+function hasData(xmlNode) {
+	var rc = false;
+	try {
+		//MD 21/01: Length is not a method 
+		if  (xmlNode.length() &gt; 0) {
+			string=xmlNode.toString();
+			if ((string!=&apos;&apos;)&amp;&amp;(string!=&apos;&quot;&quot;&apos;)) {
+			rc=true
+			}
+		}
+		return rc;
+	}	
+
+	catch (e) {
+		logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( hasData ) &quot; + e.name + &quot;: &quot; + e.message);
+		
+		throw Error(&quot;Channel &quot; + getChannelName() + &quot; ( hasData ) &quot; + e.name + &quot;: &quot; + e.message);
+		// MRD: 19/01/11
+		//stopChannel(channelId);
+		//logger.error(&quot;Channel &quot; + getChannelName() + &quot; has been stopped&quot;);
+	}
+
+//	finally {
+//		return rc;
+//	}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>12</sequenceNumber>
+            <name>formatPhone function</name>
+            <script>// remove alpha characters from phone number
+function formatPhone(phoneNumber)
+{
+    var input = new String(phoneNumber);
+	// regx to match any character that is not numeric
+	var regX1 =  new RegExp(&quot;[^0-9]&quot;, &quot;g&quot;);
+	// regx to match 2 or more space characters
+	var regX2 =  new RegExp(&quot;[ ]{2,}&quot;, &quot;g&quot;);
+	var output = &quot;&quot;;
+	
+    
+	//get rid of non-numeric
+	input = input.replace(regX1, &quot; &quot;);
+	//reduce spaces to one
+	output = input.replace(regX2, &quot; &quot;);
+    // truncate if single charecter only left
+    if(output == &quot; &quot; || output.length == 0) output = &apos;&quot;&quot;&apos;;
+    
+    return output;
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// remove alpha characters from phone number
+function formatPhone(phoneNumber)
+{
+    var input = new String(phoneNumber);
+	// regx to match any character that is not numeric
+	var regX1 =  new RegExp(&quot;[^0-9]&quot;, &quot;g&quot;);
+	// regx to match 2 or more space characters
+	var regX2 =  new RegExp(&quot;[ ]{2,}&quot;, &quot;g&quot;);
+	var output = &quot;&quot;;
+	
+    
+	//get rid of non-numeric
+	input = input.replace(regX1, &quot; &quot;);
+	//reduce spaces to one
+	output = input.replace(regX2, &quot; &quot;);
+    // truncate if single charecter only left
+    if(output == &quot; &quot; || output.length == 0) output = &apos;&quot;&quot;&apos;;
+    
+    return output;
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>13</sequenceNumber>
+            <name>isSet</name>
+            <script>function isSet(varname){
+
+	return(typeof(varname)!=&apos;undefined&apos;);
+
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>function isSet(varname){
+
+	return(typeof(varname)!=&apos;undefined&apos;);
+
+}</string>
+              </entry>
+            </data>
+          </step>
+        </steps>
+        <inboundTemplate encoding="base64">TVNIfF5+XCZ8U0MwNENFUlR8Tk9DfE5PQ19USUVfQURUfE5PQ3wyMDEwMDYwNzExMjE1NHx8QURU
+XkEwMXxRNDE2NDY3MzhUNDIxNTg0OTJYMTg3OTg0fFB8Mi4zDQpFVk58QTAxfDIwMTAwNjA3MDgw
+MDAwfHx8Xk5PQy1TZWNyZXRhcnkgTkVXXlRlc3ReXl5eXl5eUFJTTkwNClBJRHwxfDEwMDYyMjMz
+Xl5eTk9DLU1STl5NUk5eIiJ8MTAwNjIyMzNeXl5OT0MtTVJOXk1STl4iInx8WFhYTk9DVEVTVF5N
+Xl5eXl5DVVJSRU5UfHwxOTkxMDEwMXwxfHwiInxOdWZmaWVsZCBPcnRob3BhZWRpYyBDZW50cmVe
+T2xkIFJvYWReT1hGT1JEXiIiXk9YMyA3TEReR0JSXkhPTUVeSGVhZGluZ3Rvbl4iInx8MDE5OTM3
+Nzc3NzdeSE9NRV5DRDo0MDcyNDMwfCExNHwhMTV8ITE2fCExN3whMTh8ITE5fCEyMHwhMjF8ITIy
+fCEyM3whMjR8ITI1fCEyNnwhMjd8ITI4fCEyOXwhMzANClBEMXwiInwiInxeXks4NDYyMnxHODkw
+MTc3Nl5Mb2xlLUhhcnJpc15DYXJvbF5Bbm58IiJ8fCIifDANClBWMXwxfElOUEFUSUVOVHxOT0Mt
+RFNVXkRTVV4wM15OT0NeXkJFRF5NdXNjfDIyfHwiIl4iIl4iIl4iIl5eXiIifEMxNTI0OTcwXkJ1
+cmdlXlBldGVyXl5eTXJeXl5OSFNDT05TVUxUTkJSXlBSU05MXl5eTk9OR1BeIiJ+MzMzNzk4MDAw
+MDAwXkJ1cmdlXlBldGVyXl5eTXJeXl5EUk5CUl5QUlNOTF5eXk9SR0RSXiIifEc4OTAxNzc2Xkxv
+bGUtSGFycmlzXkNhcm9sXkFubl5eXl5eRVhUSUReUFJTTkxeXl5FWFRJRF4iIn42OTExMTAxMzIw
+MzheTG9sZS1IYXJyaXNeQ2Fyb2xeQW5uXl5eXl5EUk5CUl5QUlNOTF5eXk9SR0RSXiIifHwxMTB8
+IiJ8IiJ8IiJ8MTl8IiJ8IiJ8fElOUEFUSUVOVHw0MzcyODNeXiIiXl5WSVNJVElEfCIifHwiInx8
+fHx8fHx8fHx8fHx8IiJ8IiJ8IiJ8Tk9DfHxBQ1RJVkV8fHwyMDEwMDYwNzA4MDAwMA0KUFYyfHwx
+fHx8fHwiInx8MjAxMDA2MTAwMDAwMDB8fHx8IiJ8fHx8fHx8fCIifCIifF5eNjQ3ODQzDQpNUkd8
+Xl5eXl58fHx8</inboundTemplate>
+        <outboundTemplate encoding="base64">TVNIfF5+XCZ8fHx8fHx8fHx8CkVWTnx8fHx8Xl5eXl5eXl5eClNDSHx8fHx8fHx8fHx8Xl5efHx8
+fHx8fHx8fHx8fHwKUElEfHx8Xl5eXn5eXl5efHxeXl5eXl58fHx8fHxeXl5eXl5eXnx8Xl5eXl5e
+Xl5+Xl5eXl5eXl58Xl5eXl5eXl58fHx8fHx8fHx8fHx8fHx8ClBEMXx8fF5eIiJ8IiJeXl5eXl5e
+Xl5eXl5efHx8fApQVjF8fHxeXl5eXl58fHx8fHxeXl5eXl5eXl5eXl5efHx8fHx8fHx8fHx8fHx8
+fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8Ck1SR3xeXl5efl5eXl58fHx8</outboundTemplate>
+        <inboundProtocol>HL7V2</inboundProtocol>
+        <outboundProtocol>HL7V2</outboundProtocol>
+        <inboundProperties>
+          <property name="convertLFtoCR">true</property>
+          <property name="handleRepetitions">true</property>
+          <property name="handleSubcomponents">false</property>
+          <property name="stripNamespaces">true</property>
+          <property name="useStrictParser">false</property>
+          <property name="useStrictValidation">false</property>
+        </inboundProperties>
+        <outboundProperties>
+          <property name="convertLFtoCR">true</property>
+          <property name="handleRepetitions">true</property>
+          <property name="handleSubcomponents">false</property>
+          <property name="stripNamespaces">true</property>
+          <property name="useStrictParser">false</property>
+          <property name="useStrictValidation">false</property>
+        </outboundProperties>
+      </transformer>
+      <filter>
+        <rules>
+          <rule>
+            <sequenceNumber>0</sequenceNumber>
+            <name>Filter ADT Event</name>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>try {
+
+	var pass = false;
+	var adtEvent =  msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.2&apos;].toString();
+	var facility = &apos;&apos;;
+
+	switch (adtEvent) {
+		case &apos;A28&apos; : // Admit patient
+		case &apos;A31&apos; : // Transfer patient
+		case &apos;A34&apos; : // Merge patient	
+			pass = true;
+			break;	
+		
+	    case &apos;A01&apos; : // Admit patient	
+		case &apos;A02&apos; : // Transfer patient
+		case &apos;A03&apos; : // Discharge patient
+        case &apos;A05&apos; : // Pre-admit patient
+		case &apos;A13&apos; : // Cancel patient discharge
+		case &apos;S12&apos; : // New appointment
+		case &apos;S13&apos; : // updated appointment
+			facility = msg[&apos;PV1&apos;][&apos;PV1.3&apos;][&apos;PV1.3.4&apos;].toString().toUpperCase();
+			pass = (facility != &apos;NOC&apos;);
+			//pass = (facility == &apos;ORH&apos;
+            //      || facility == &apos;JOHN RADCLIFFE&apos;
+			//   	|| facility == &apos;HORTON&apos;
+            //      || facility == &apos;CHURCHILL&apos;);
+			break;
+			
+		default :
+			pass = false;
+			break;
+	}
+
+	return pass;
+}
+catch (e) {
+		logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( Filter ADT Event ) &quot; + e.name + &quot;: &quot; + e.message);
+		throw e;
+}</string>
+              </entry>
+            </data>
+            <type>JavaScript</type>
+            <script>try {
+
+	var pass = false;
+	var adtEvent =  msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.2&apos;].toString();
+	var facility = &apos;&apos;;
+
+	switch (adtEvent) {
+		case &apos;A28&apos; : // Admit patient
+		case &apos;A31&apos; : // Transfer patient
+		case &apos;A34&apos; : // Merge patient	
+			pass = true;
+			break;	
+		
+	    case &apos;A01&apos; : // Admit patient	
+		case &apos;A02&apos; : // Transfer patient
+		case &apos;A03&apos; : // Discharge patient
+        case &apos;A05&apos; : // Pre-admit patient
+		case &apos;A13&apos; : // Cancel patient discharge
+		case &apos;S12&apos; : // New appointment
+		case &apos;S13&apos; : // updated appointment
+			facility = msg[&apos;PV1&apos;][&apos;PV1.3&apos;][&apos;PV1.3.4&apos;].toString().toUpperCase();
+			pass = (facility != &apos;NOC&apos;);
+			//pass = (facility == &apos;ORH&apos;
+            //      || facility == &apos;JOHN RADCLIFFE&apos;
+			//   	|| facility == &apos;HORTON&apos;
+            //      || facility == &apos;CHURCHILL&apos;);
+			break;
+			
+		default :
+			pass = false;
+			break;
+	}
+
+	return pass;
+}
+catch (e) {
+		logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( Filter ADT Event ) &quot; + e.name + &quot;: &quot; + e.message);
+		throw e;
+}</script>
+            <operator>NONE</operator>
+          </rule>
+          <rule>
+            <sequenceNumber>1</sequenceNumber>
+            <name>DM Merge Filter</name>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>var pass = true;
+
+// Ckeck if this is a data migration merge record
+if(msg[&apos;EVN&apos;].toString() != null) {
+	if(msg[&apos;EVN&apos;][&apos;EVN.4&apos;][&apos;EVN.4.1&apos;].toString() == &quot;DMM&quot; &amp;&amp; msg[&apos;MSH&apos;][&apos;MSH.10&apos;][&apos;MSH.10.1&apos;].toString().substring(1,0) == &quot;M&quot;) {
+		pass = false;
+	}
+}
+
+return pass;</string>
+              </entry>
+            </data>
+            <type>JavaScript</type>
+            <script>var pass = true;
+
+// Ckeck if this is a data migration merge record
+if(msg[&apos;EVN&apos;].toString() != null) {
+	if(msg[&apos;EVN&apos;][&apos;EVN.4&apos;][&apos;EVN.4.1&apos;].toString() == &quot;DMM&quot; &amp;&amp; msg[&apos;MSH&apos;][&apos;MSH.10&apos;][&apos;MSH.10.1&apos;].toString().substring(1,0) == &quot;M&quot;) {
+		pass = false;
+	}
+}
+
+return pass;</script>
+            <operator>AND</operator>
+          </rule>
+        </rules>
+      </filter>
+      <transportName>LLP Sender</transportName>
+      <mode>DESTINATION</mode>
+      <enabled>true</enabled>
+      <version>2.2.1.5861</version>
+    </connector>
+  </destinationConnectors>
+  <properties>
+    <property name="clearGlobalChannelMap">true</property>
+    <property name="dont_store_filtered">false</property>
+    <property name="encryptData">false</property>
+    <property name="error_messages_only">false</property>
+    <property name="initialState">started</property>
+    <property name="max_message_age">5</property>
+    <property name="store_messages">true</property>
+    <property name="synchronous">true</property>
+    <property name="transactional">false</property>
+  </properties>
+  <preprocessingScript>// Modify the message variable below to pre process data
+return message;</preprocessingScript>
+  <postprocessingScript>// This script executes once after a message has been processed
+return;</postprocessingScript>
+  <deployScript>// This script executes once when the channel is deployed
+// You only have access to the globalMap and globalChannelMap here to persist data
+globalMap.put(channelId,&apos;Q_ADT_CRIS_ORH&apos;);
+return;</deployScript>
+  <shutdownScript>// This script executes once when the channel is undeployed
+// You only have access to the globalMap and globalChannelMap here to persist data
+return;</shutdownScript>
+</channel>

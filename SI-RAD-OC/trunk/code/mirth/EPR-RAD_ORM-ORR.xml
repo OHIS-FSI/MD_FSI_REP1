@@ -1,0 +1,483 @@
+<channel>
+  <id>6e412e0e-b638-4d65-8012-88db283d7c40</id>
+  <name>EPR-RAD_ORM-ORR</name>
+  <description>Do not disable. Feeder channel from NOC production environment for for ORM/ORR messages.  (Radiology bound messages)</description>
+  <enabled>false</enabled>
+  <version>2.2.1.5861</version>
+  <lastModified>
+    <time>1324372612179</time>
+    <timezone>Europe/London</timezone>
+  </lastModified>
+  <revision>22</revision>
+  <sourceConnector>
+    <name>sourceConnector</name>
+    <properties>
+      <property name="DataType">LLP Listener</property>
+      <property name="ackCodeError">AE</property>
+      <property name="ackCodeRejected">AR</property>
+      <property name="ackCodeSuccessful">AA</property>
+      <property name="ackIP"></property>
+      <property name="ackMsgError">An Error Occured Processing Message.</property>
+      <property name="ackMsgRejected">Message Rejected.</property>
+      <property name="ackMsgSuccessful"></property>
+      <property name="ackOnNewConnection">0</property>
+      <property name="ackPort"></property>
+      <property name="bufferSize">65536</property>
+      <property name="charEncoding">hex</property>
+      <property name="charsetEncoding">DEFAULT_ENCODING</property>
+      <property name="checkMSH15">0</property>
+      <property name="host">10.134.138.154</property>
+      <property name="keepSendSocketOpen">0</property>
+      <property name="messageEnd">0x1C</property>
+      <property name="messageStart">0x0B</property>
+      <property name="port">21411</property>
+      <property name="processBatchFiles">0</property>
+      <property name="receiveTimeout">0</property>
+      <property name="reconnectInterval">5000</property>
+      <property name="recordSeparator">0x0D</property>
+      <property name="responseFromTransformer">0</property>
+      <property name="responseValue">None</property>
+      <property name="segmentEnd">0x0D</property>
+      <property name="sendACK">1</property>
+      <property name="serverMode">1</property>
+      <property name="tcpProtocolClassName">org.mule.providers.tcp.protocols.TcpProtocol</property>
+      <property name="useStrictLLP">1</property>
+      <property name="waitForEndOfMessageCharacter">0</property>
+    </properties>
+    <transformer>
+      <steps>
+        <step>
+          <sequenceNumber>0</sequenceNumber>
+          <name>messageControlID</name>
+          <script>var mapping;try { mapping = msg[&apos;MSH&apos;][&apos;MSH.10&apos;][&apos;MSH.10.1&apos;].toString(); }catch (e) { logger.error(e);  mapping = &apos;&apos;;}channelMap.put(&apos;messageControlID&apos;, validate( mapping , &apos;&apos;, new Array()));</script>
+          <type>Mapper</type>
+          <data class="map">
+            <entry>
+              <string>Variable</string>
+              <string>messageControlID</string>
+            </entry>
+            <entry>
+              <string>DefaultValue</string>
+              <string></string>
+            </entry>
+            <entry>
+              <string>RegularExpressions</string>
+              <list/>
+            </entry>
+            <entry>
+              <string>Mapping</string>
+              <string>msg[&apos;MSH&apos;][&apos;MSH.10&apos;][&apos;MSH.10.1&apos;].toString()</string>
+            </entry>
+            <entry>
+              <string>isGlobal</string>
+              <string>channel</string>
+            </entry>
+          </data>
+        </step>
+        <step>
+          <sequenceNumber>1</sequenceNumber>
+          <name>julianDateNow</name>
+          <script>var mapping;try { mapping = DateUtil.getCurrentDate(&quot;yyyyDDD&quot;);; }catch (e) { logger.error(e);  mapping = &apos;&apos;;}channelMap.put(&apos;julianDateNow&apos;, validate( mapping , &apos;&apos;, new Array()));</script>
+          <type>Mapper</type>
+          <data class="map">
+            <entry>
+              <string>Variable</string>
+              <string>julianDateNow</string>
+            </entry>
+            <entry>
+              <string>DefaultValue</string>
+              <string></string>
+            </entry>
+            <entry>
+              <string>Mapping</string>
+              <string>DateUtil.getCurrentDate(&quot;yyyyDDD&quot;);</string>
+            </entry>
+            <entry>
+              <string>RegularExpressions</string>
+              <list/>
+            </entry>
+            <entry>
+              <string>isGlobal</string>
+              <string>channel</string>
+            </entry>
+          </data>
+        </step>
+        <step>
+          <sequenceNumber>2</sequenceNumber>
+          <name>julianDateTimeNow</name>
+          <script>var mapping;try { mapping = DateUtil.getCurrentDate(&quot;DDDHHmmssSSS&quot;);; }catch (e) { logger.error(e);  mapping = &apos;&apos;;}channelMap.put(&apos;julianDateTimeNow&apos;, validate( mapping , &apos;&apos;, new Array()));</script>
+          <type>Mapper</type>
+          <data class="map">
+            <entry>
+              <string>Variable</string>
+              <string>julianDateTimeNow</string>
+            </entry>
+            <entry>
+              <string>DefaultValue</string>
+              <string></string>
+            </entry>
+            <entry>
+              <string>Mapping</string>
+              <string>DateUtil.getCurrentDate(&quot;DDDHHmmssSSS&quot;);</string>
+            </entry>
+            <entry>
+              <string>RegularExpressions</string>
+              <list/>
+            </entry>
+            <entry>
+              <string>isGlobal</string>
+              <string>channel</string>
+            </entry>
+          </data>
+        </step>
+        <step>
+          <sequenceNumber>3</sequenceNumber>
+          <name>event</name>
+          <script>var mapping;try { mapping = msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.2&apos;].toString(); }catch (e) { logger.error(e);  mapping = &apos;&apos;;}channelMap.put(&apos;event&apos;, validate( mapping , &apos;&apos;, new Array()));</script>
+          <type>Mapper</type>
+          <data class="map">
+            <entry>
+              <string>Variable</string>
+              <string>event</string>
+            </entry>
+            <entry>
+              <string>DefaultValue</string>
+              <string></string>
+            </entry>
+            <entry>
+              <string>Mapping</string>
+              <string>msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.2&apos;].toString()</string>
+            </entry>
+            <entry>
+              <string>RegularExpressions</string>
+              <list/>
+            </entry>
+            <entry>
+              <string>isGlobal</string>
+              <string>channel</string>
+            </entry>
+          </data>
+        </step>
+      </steps>
+      <inboundTemplate encoding="base64">TVNIfF5+XCZ8Q1IwMXxOT0N8RElFfE5PQ3wyMDA3MDgxNTE1NTk1M3x8QURUXkExM3xRMzk3ODIz
+NVQ0MDQyODU3WDQyMTg1MXxQfDIuMw1FVk58QTEzfDIwMDcwODE1MTU0OTAwfHx8Xkd1cHRhXlBv
+b2phXl5eXl5eXlBSU05MDVBJRHwxfDEwMDE2MTc0Xl5eTk9DLU1STl5NUk5eIiJ8MTAwMTYxNzRe
+Xl5OT0MtTVJOXk1STl4iIn4xMTExMTExMTExXl5eTkhTTkJSXk5IU05NQlJ8fFpaVEVTVEReSU5Q
+QVReXl5eXkNVUlJFTlR8fDE5NzkwMTAxfDF8fCIifE5vIEZpeGVkIEFib2RlXl5eIiJeWlo5OSAz
+VlpeIiJeSE9NRV5eIiJ8fHx8IiJ8TnwiInw1Mzc2OF5eXk5PQy1FbmNudHIgTnVtYmVyXkZJTk5C
+Ul4iInx8fHxIfHx8MHwiInwiInwiInx8IiINTlRFfDF8UE1fVFJBTlNBQ1RJT058Y29tbWVudHMN
+UEQxfCIifCIifF5eRTgyMDUxfEc5MjAwNDA3XkhBXkh8IiJ8fCIifCIiDVpQSXwxfHx8fHx8fHwi
+InxHOTIwMDQwN15IQV5IfHwiInwiInwiInwiInx8fHx8fHwiIg1aRUl8MQ1QVjF8MXxJTlBBVElF
+TlR8Tk9DLU1heWZhaXJeTWF5ZmFpcl4xOF5OT0NeXkJFRF5NdXNjfDIxfHxOT0MtTWF5ZmFpcl5N
+YXlmYWlyXjE4Xk5PQ15eXk11c2N8UkJGODY4XkFybm90dF5LZXJyaWVeXl5eXl5OSFNDT05TVUxU
+TkJSXlBSU05MXl5eTk9OR1BeIiJ8RzgzMDYzNDBeR0FCQUxMQV5ORV5eXl5eXkVYVElEXlBSU05M
+Xl5eRVhUSUReIiJ8fDExMHwiInwiInwiInw1NHwiInwiInx8SU5QQVRJRU5UfDExNzczNF5eXl5W
+SVNJVElEfCIifHwiInx8fHx8fHx8fHx8fHx8IiJ8IiJ8IiJ8Tk9DfHxBQ1RJVkV8fHwyMDA3MDgx
+NTE1MDIzNA1QVjJ8fDF8fHx8fCIifHx8fHx8IiJ8fHx8fHx8fCIifCIifF5eNjQ3ODQzDVpWSXwi
+Inx8fHx8MzE0fHx8IiJ8IiJ8fCIifHwiInwyMDA3MDgxNTE1NDIwMA1PQlh8MXxDRHxQQVNPVkVS
+U0VBU3x8OA1PQlh8MnxDRHxQQVNTSVRFQ09ERXx8dGhpc2l0ZQ1PQlh8M3xDRHxBUFBUUkVRUlRF
+fHxOT0MNT0JYfDR8Q0R8RlRDQVJFQUREfHxOTw1PQlh8NXxDRHxGVEFEREVNQ3x8Tk8NT0JYfDZ8
+Q0R8RlRHVUFSREFERHx8Tk8NT0JYfDd8Q0R8RlRIT01FQUREfHxOTw1PQlh8OHxDRHxGVEFERE5P
+S3x8Tk8NT0JYfDl8Q0R8RlRURU1QQUREUkVTfHxOTw1PQlh8MTB8Q0R8TkZBfHxZRVMNT0JYfDEx
+fFNUfFNIQURJU1BMQVl8fFNvdXRoIFdlc3QgTG9uZG9uIFNIQQ1PQlh8MTJ8Q0R8UEVSU09OVUtS
+RVN8fFlFUw0=</inboundTemplate>
+      <outboundTemplate encoding="base64"></outboundTemplate>
+      <inboundProtocol>HL7V2</inboundProtocol>
+      <outboundProtocol>HL7V2</outboundProtocol>
+      <inboundProperties>
+        <property name="convertLFtoCR">true</property>
+        <property name="handleRepetitions">true</property>
+        <property name="stripNamespaces">true</property>
+        <property name="useStrictParser">false</property>
+        <property name="useStrictValidation">false</property>
+      </inboundProperties>
+      <outboundProperties>
+        <property name="convertLFtoCR">true</property>
+      </outboundProperties>
+    </transformer>
+    <filter>
+      <rules/>
+    </filter>
+    <transportName>LLP Listener</transportName>
+    <mode>SOURCE</mode>
+    <enabled>true</enabled>
+    <version>2.2.1.5861</version>
+  </sourceConnector>
+  <destinationConnectors>
+    <connector>
+      <name>message-type-filter</name>
+      <properties>
+        <property name="DataType">File Writer</property>
+        <property name="FTPAnonymous">1</property>
+        <property name="binary">0</property>
+        <property name="charsetEncoding">DEFAULT_ENCODING</property>
+        <property name="directory"></property>
+        <property name="errorOnExists">0</property>
+        <property name="host">folders/journals/EPR-RAD_ORM-ORR/reject/${date.get(&apos;yyMMdd&apos;)}</property>
+        <property name="outputAppend">1</property>
+        <property name="outputPattern">${messageControlID}_${COUNT}.hl7</property>
+        <property name="passive">1</property>
+        <property name="password">anonymous</property>
+        <property name="scheme">file</property>
+        <property name="secure">1</property>
+        <property name="template">${message.encodedData}</property>
+        <property name="temporary">0</property>
+        <property name="timeout">10000</property>
+        <property name="username">anonymous</property>
+        <property name="validateConnections">1</property>
+      </properties>
+      <transformer>
+        <steps/>
+        <inboundTemplate encoding="base64">IE1TSHxeflwmfFBSMDF8Tk9DfERJRXxOT0N8MjAwNzA3MTgxNTAxMjR8fEFEVF5BMDh8UTM5NjU5
+NDJUNDAzMDU1OVg0MTM3NTl8UHwyLjMNRVZOfEEwOHwyMDA3MDcxODE1MDExOXx8fF5HdXB0YV5Q
+b29qYV5eXl5eXl5QUlNOTA1QSUR8MXwxMDAxNjEzOV5eXk5PQy1NUk5eTVJOXiIifDEwMDE2MTM5
+Xl5eTk9DLU1STl5NUk5eIiJ+MTExMTExMTExMV5eXk5IU05CUl5OSFNOTUJSfHxaWlRFU1ReTk9D
+Xk1JRERMRV5eXl5DVVJSRU5UfHwxOTc5MDEwMXwxfEJJUlRIU1VSXl5eXl5eTUFJREVOfCIifGFk
+ZHJlc3MgbGluZSAxXmFkZHJlc3MgbGluZSAyXmFkZHJlc3MgbGluZSA0XiIiXnNsMTF0d14iIl5I
+T01FXmFkZHJlc3MgbGluZSAzXiIifmFAYl5eXiIiXl4iIl5FTUFJTF5eIiJ8fDExMTFeSE9NRX45
+ODExXlBBR0VSUFJTTkx8MjIyMl5CVVNJTkVTU3w1fFB8UkNBVEhPTElDfDUzNzAxXl5eTk9DLUVu
+Y250ciBOdW1iZXJeRklOTkJSXiIifHx8fE58fHwwfCIifCIifCIifHwiIg1OVEV8MXxQTV9UUkFO
+U0FDVElPTnxjb21tZW50DVBEMXwyfCIifF5eTTg1NzE3fEc4MzA2MzQwXkdBQkFMTEFeTkV8IiJ8
+fCIifCIiDVpQSXwxfHx8fHx8fHwiInxHODMwNjM0MF5HQUJBTExBXk5FfHwiInwiInwiInwiInx8
+fHx8fHwiIg1aRUl8MQ1OSzF8MXxaWlRFU1ReUE9PSkExXl5eXl5DVVJSRU5UfEZSSUVORHwzNSBT
+dGVwaGVuc29uIENvdXJ0Xk9zYm9ybmUgU3RyZWV0XlNMT1VHSF4iIl5TTDEgMVRXXiIiXl5eIiJ8
+MTAwfjk4MTF8MjAwfE5PS3x8fHx8fHx8fDE5ODAwMTAxDU5LMXwyfFpaVEVTVEFNTklPXkRPV05T
+Xl5eXl5DVVJSRU5UfER8V3ljb21iZSBHZW5lcmFsIEhvc3BpdGFsXlF1ZWVuIEFsZXhhbmRyYSBS
+b2FkXkhJR0ggV1lDT01CRV4iIl5IUDExIDJUXiIiXl5eQnVja2luZ2hhbXNoaXJlfHx8RU1FUkdD
+T058fHx8fHx8fHwxOTcwMDEwMQ1QVjF8MXxJTlBBVElFTlR8Tk9DLVdhcmQgQV5EYXkgUm9vbV5D
+aGFpciAxXk5PQ15eQkVEXk11c2N8MjJ8fE5PQy1XYXJkIEFeRGF5IFJvb21eQ2hhaXIgMV5OT0Ne
+Xl5NdXNjfENINTg0NV5MYXZpc15HcmFoYW1lXl5eXl5eTkhTQ09OU1VMVE5CUl5QUlNOTF5eXk5P
+TkdQXiIifEc5MjAwNDA3XkhBXkheXl5eXl5FWFRJRF5QUlNOTF5eXkVYVElEXiIifHwxMTB8IiJ8
+IiJ8IiJ8NTF8IiJ8IiJ8fElOUEFUSUVOVHwxMTc2NTleXl5eVklTSVRJRHwiInx8IiJ8fHx8fHx8
+fHx8fHx8fCIifCIifCIifE5PQ3x8QUNUSVZFfHx8MjAwNzA3MTgxNDIyMDANUFYyfHwxfHx8fHwi
+Inx8MjAwNzA3MTkwMDAwMDB8fHx8IiJ8fHx8fHx8fCIifCIifF5eNjQ3ODQzDVpWSXwiInx8fHx8
+MTEwfHx8IiJ8IiJ8fCIifHwiIg1PQlh8MXxDRHxQQVNPVkVSU0VBU3x8OA1PQlh8MnxDRHxQQVNT
+SVRFQ09ERXx8dGhpc2l0ZQ1PQlh8M3xDRHxBUFBUUkVRUlRFfHxOT0MNT0JYfDR8Q0R8UkVMX1JF
+TEd8fFlFUw1PQlh8NXxDRHxGVENBUkVBRER8fE5PDU9CWHw2fENEfEZUQURERU1DfHxOTw1PQlh8
+N3xDRHxGVEdVQVJEQUREfHxOTw1PQlh8OHxDRHxGVEhPTUVBRER8fE5PDU9CWHw5fENEfEZUQURE
+Tk9LfHxOTw1PQlh8MTB8Q0R8RlRURU1QQUREUkVTfHxOTw1PQlh8MTF8Q0R8TkZBfHxOTw1PQlh8
+MTJ8Q0R8UEVSU09OVUtSRVN8fFlFUw1BTDF8MXxFTlZSTk1UfF5kdXN0fDR8Y29kaWZpZWQgc3lt
+cHRvbXwyMDA3MDcxODAwMDAwMA1aQUx8U05BUFNIT1R8MjAwNzA3MTgxNDMwNTl8ODczNzk4fDg3
+Mzc5OHxJTlRPTHxBQ1RJVkV8XmNvZGlmaWVkIHN5bXB0b218Q0Q6NjM4OTk1fHx8MjAwNzA3MTgx
+NDI4Mzd8Xkd1cHRhXlBvb2phXl5eXl5eXlBSU05MfDANQUwxfDJ8Rk9PRHxeTG9ic3Rlcl5BTExF
+UkdZfDN8MzAwNDQyMDE0fjEyMzI0OTgwMTN8MjAwNzA3MTgwMDAwMDANWkFMfFNOQVBTSE9UfDIw
+MDcwNzE4MTQzMTAxfDg3MzgwMXw4NzM4MDF8VE9YfEFDVElWRXwzMDA0NDIwMTReQUFBIC0gQWJk
+b21pbmFsIGFvcnRpYyBhbmV1cnlzbSB3aXRob3V0IG1lbnRpb24gb2YgcnVwdHVyZV42NzM5Njd+
+MTIzMjQ5ODAxM15CQkIgLSBCdW5kbGUgYnJhbmNoIGJsb2NrXjY3Mzk2N3xDRDo2Mzg5OTN8fHwy
+MDA3MDcxODE0MzA1OHxeR3VwdGFeUG9vamFeXl5eXl5eUFJTTkx8MA1OVEV8MXx8Y29tbWVudCBh
+bGxlcmd5DUFMMXwzfERSVUd8ODExMTAxN15QZW5pY2lsbGFtaW5lXlNOT01FRENUfHw0ODMxNjUw
+MTENWkFMfFNOQVBTSE9UfDIwMDcwNzE4MTQzMzMzfDg3MzgwNXw4NzM4MDV8SURTWU5DfEFDVElW
+RXw0ODMxNjUwMTFebyxwJy1EREReNjczOTY3fHx8fDIwMDcwNzE4MTQzMzMyfF5HdXB0YV5Qb29q
+YV5eXl5eXl5QUlNOTHwwDURHMXwxfFNOTUNUfDM5MzI4MDAxNHxBQiBoZWFyaW5nIGFzc2Vzc21l
+bnQgbGlzdHwyMDA3MDcxODE0NTkyMXxBRE1JVFRJTkd8IiJ8fHx8fHx8fDF8MHwiInwiIg1ERzF8
+MnxTTk1DVHwzOTMyODAwMTR8QUIgaGVhcmluZyBhc3Nlc3NtZW50IGxpc3R8MjAwNzA3MTgxNDU5
+MjF8QURNSVRUSU5HfCIifHx8fHx8fHwwfDB8IiJ8IiIN</inboundTemplate>
+        <inboundProtocol>HL7V2</inboundProtocol>
+        <outboundProtocol>HL7V2</outboundProtocol>
+        <inboundProperties>
+          <property name="convertLFtoCR">true</property>
+        </inboundProperties>
+        <outboundProperties>
+          <property name="convertLFtoCR">true</property>
+          <property name="handleRepetitions">false</property>
+          <property name="handleSubcomponents">false</property>
+          <property name="stripNamespaces">true</property>
+          <property name="useStrictParser">false</property>
+          <property name="useStrictValidation">false</property>
+        </outboundProperties>
+      </transformer>
+      <filter>
+        <rules>
+          <rule>
+            <sequenceNumber>0</sequenceNumber>
+            <name>Accept message if &quot;msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString()&quot; does not equal &quot;ORM&quot; or &quot;ORR&quot;</name>
+            <data class="map">
+              <entry>
+                <string>Values</string>
+                <list>
+                  <string>&quot;ORM&quot;</string>
+                  <string>&quot;ORR&quot;</string>
+                </list>
+              </entry>
+              <entry>
+                <string>Name</string>
+                <string></string>
+              </entry>
+              <entry>
+                <string>Field</string>
+                <string>msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString()</string>
+              </entry>
+              <entry>
+                <string>OriginalField</string>
+                <string></string>
+              </entry>
+              <entry>
+                <string>Equals</string>
+                <string>0</string>
+              </entry>
+            </data>
+            <type>Rule Builder</type>
+            <script>if(msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString() != &quot;ORM&quot; &amp;&amp; msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString() != &quot;ORR&quot;)
+{
+return true;
+}
+return false;</script>
+            <operator>NONE</operator>
+          </rule>
+        </rules>
+      </filter>
+      <transportName>File Writer</transportName>
+      <mode>DESTINATION</mode>
+      <enabled>true</enabled>
+      <version>2.2.1.5861</version>
+    </connector>
+    <connector>
+      <name>file_journal_single</name>
+      <properties>
+        <property name="DataType">File Writer</property>
+        <property name="FTPAnonymous">1</property>
+        <property name="binary">0</property>
+        <property name="charsetEncoding">DEFAULT_ENCODING</property>
+        <property name="directory"></property>
+        <property name="errorOnExists">0</property>
+        <property name="host">folders/journals/EPR-RAD_ORM-ORR/${date.get(&apos;yyMMdd&apos;)}</property>
+        <property name="outputAppend">1</property>
+        <property name="outputPattern">${messageControlID}_${COUNT}.hl7</property>
+        <property name="passive">1</property>
+        <property name="password">anonymous</property>
+        <property name="scheme">file</property>
+        <property name="secure">1</property>
+        <property name="template">${message.encodedData}</property>
+        <property name="temporary">0</property>
+        <property name="timeout">10000</property>
+        <property name="username">anonymous</property>
+        <property name="validateConnections">1</property>
+      </properties>
+      <transformer>
+        <steps/>
+        <inboundTemplate encoding="base64">IE1TSHxeflwmfFBSMDF8Tk9DfERJRXxOT0N8MjAwNzA3MTgxNTAxMjR8fEFEVF5BMDh8UTM5NjU5
+NDJUNDAzMDU1OVg0MTM3NTl8UHwyLjMNRVZOfEEwOHwyMDA3MDcxODE1MDExOXx8fF5HdXB0YV5Q
+b29qYV5eXl5eXl5QUlNOTA1QSUR8MXwxMDAxNjEzOV5eXk5PQy1NUk5eTVJOXiIifDEwMDE2MTM5
+Xl5eTk9DLU1STl5NUk5eIiJ+MTExMTExMTExMV5eXk5IU05CUl5OSFNOTUJSfHxaWlRFU1ReTk9D
+Xk1JRERMRV5eXl5DVVJSRU5UfHwxOTc5MDEwMXwxfEJJUlRIU1VSXl5eXl5eTUFJREVOfCIifGFk
+ZHJlc3MgbGluZSAxXmFkZHJlc3MgbGluZSAyXmFkZHJlc3MgbGluZSA0XiIiXnNsMTF0d14iIl5I
+T01FXmFkZHJlc3MgbGluZSAzXiIifmFAYl5eXiIiXl4iIl5FTUFJTF5eIiJ8fDExMTFeSE9NRX45
+ODExXlBBR0VSUFJTTkx8MjIyMl5CVVNJTkVTU3w1fFB8UkNBVEhPTElDfDUzNzAxXl5eTk9DLUVu
+Y250ciBOdW1iZXJeRklOTkJSXiIifHx8fE58fHwwfCIifCIifCIifHwiIg1OVEV8MXxQTV9UUkFO
+U0FDVElPTnxjb21tZW50DVBEMXwyfCIifF5eTTg1NzE3fEc4MzA2MzQwXkdBQkFMTEFeTkV8IiJ8
+fCIifCIiDVpQSXwxfHx8fHx8fHwiInxHODMwNjM0MF5HQUJBTExBXk5FfHwiInwiInwiInwiInx8
+fHx8fHwiIg1aRUl8MQ1OSzF8MXxaWlRFU1ReUE9PSkExXl5eXl5DVVJSRU5UfEZSSUVORHwzNSBT
+dGVwaGVuc29uIENvdXJ0Xk9zYm9ybmUgU3RyZWV0XlNMT1VHSF4iIl5TTDEgMVRXXiIiXl5eIiJ8
+MTAwfjk4MTF8MjAwfE5PS3x8fHx8fHx8fDE5ODAwMTAxDU5LMXwyfFpaVEVTVEFNTklPXkRPV05T
+Xl5eXl5DVVJSRU5UfER8V3ljb21iZSBHZW5lcmFsIEhvc3BpdGFsXlF1ZWVuIEFsZXhhbmRyYSBS
+b2FkXkhJR0ggV1lDT01CRV4iIl5IUDExIDJUXiIiXl5eQnVja2luZ2hhbXNoaXJlfHx8RU1FUkdD
+T058fHx8fHx8fHwxOTcwMDEwMQ1QVjF8MXxJTlBBVElFTlR8Tk9DLVdhcmQgQV5EYXkgUm9vbV5D
+aGFpciAxXk5PQ15eQkVEXk11c2N8MjJ8fE5PQy1XYXJkIEFeRGF5IFJvb21eQ2hhaXIgMV5OT0Ne
+Xl5NdXNjfENINTg0NV5MYXZpc15HcmFoYW1lXl5eXl5eTkhTQ09OU1VMVE5CUl5QUlNOTF5eXk5P
+TkdQXiIifEc5MjAwNDA3XkhBXkheXl5eXl5FWFRJRF5QUlNOTF5eXkVYVElEXiIifHwxMTB8IiJ8
+IiJ8IiJ8NTF8IiJ8IiJ8fElOUEFUSUVOVHwxMTc2NTleXl5eVklTSVRJRHwiInx8IiJ8fHx8fHx8
+fHx8fHx8fCIifCIifCIifE5PQ3x8QUNUSVZFfHx8MjAwNzA3MTgxNDIyMDANUFYyfHwxfHx8fHwi
+Inx8MjAwNzA3MTkwMDAwMDB8fHx8IiJ8fHx8fHx8fCIifCIifF5eNjQ3ODQzDVpWSXwiInx8fHx8
+MTEwfHx8IiJ8IiJ8fCIifHwiIg1PQlh8MXxDRHxQQVNPVkVSU0VBU3x8OA1PQlh8MnxDRHxQQVNT
+SVRFQ09ERXx8dGhpc2l0ZQ1PQlh8M3xDRHxBUFBUUkVRUlRFfHxOT0MNT0JYfDR8Q0R8UkVMX1JF
+TEd8fFlFUw1PQlh8NXxDRHxGVENBUkVBRER8fE5PDU9CWHw2fENEfEZUQURERU1DfHxOTw1PQlh8
+N3xDRHxGVEdVQVJEQUREfHxOTw1PQlh8OHxDRHxGVEhPTUVBRER8fE5PDU9CWHw5fENEfEZUQURE
+Tk9LfHxOTw1PQlh8MTB8Q0R8RlRURU1QQUREUkVTfHxOTw1PQlh8MTF8Q0R8TkZBfHxOTw1PQlh8
+MTJ8Q0R8UEVSU09OVUtSRVN8fFlFUw1BTDF8MXxFTlZSTk1UfF5kdXN0fDR8Y29kaWZpZWQgc3lt
+cHRvbXwyMDA3MDcxODAwMDAwMA1aQUx8U05BUFNIT1R8MjAwNzA3MTgxNDMwNTl8ODczNzk4fDg3
+Mzc5OHxJTlRPTHxBQ1RJVkV8XmNvZGlmaWVkIHN5bXB0b218Q0Q6NjM4OTk1fHx8MjAwNzA3MTgx
+NDI4Mzd8Xkd1cHRhXlBvb2phXl5eXl5eXlBSU05MfDANQUwxfDJ8Rk9PRHxeTG9ic3Rlcl5BTExF
+UkdZfDN8MzAwNDQyMDE0fjEyMzI0OTgwMTN8MjAwNzA3MTgwMDAwMDANWkFMfFNOQVBTSE9UfDIw
+MDcwNzE4MTQzMTAxfDg3MzgwMXw4NzM4MDF8VE9YfEFDVElWRXwzMDA0NDIwMTReQUFBIC0gQWJk
+b21pbmFsIGFvcnRpYyBhbmV1cnlzbSB3aXRob3V0IG1lbnRpb24gb2YgcnVwdHVyZV42NzM5Njd+
+MTIzMjQ5ODAxM15CQkIgLSBCdW5kbGUgYnJhbmNoIGJsb2NrXjY3Mzk2N3xDRDo2Mzg5OTN8fHwy
+MDA3MDcxODE0MzA1OHxeR3VwdGFeUG9vamFeXl5eXl5eUFJTTkx8MA1OVEV8MXx8Y29tbWVudCBh
+bGxlcmd5DUFMMXwzfERSVUd8ODExMTAxN15QZW5pY2lsbGFtaW5lXlNOT01FRENUfHw0ODMxNjUw
+MTENWkFMfFNOQVBTSE9UfDIwMDcwNzE4MTQzMzMzfDg3MzgwNXw4NzM4MDV8SURTWU5DfEFDVElW
+RXw0ODMxNjUwMTFebyxwJy1EREReNjczOTY3fHx8fDIwMDcwNzE4MTQzMzMyfF5HdXB0YV5Qb29q
+YV5eXl5eXl5QUlNOTHwwDURHMXwxfFNOTUNUfDM5MzI4MDAxNHxBQiBoZWFyaW5nIGFzc2Vzc21l
+bnQgbGlzdHwyMDA3MDcxODE0NTkyMXxBRE1JVFRJTkd8IiJ8fHx8fHx8fDF8MHwiInwiIg1ERzF8
+MnxTTk1DVHwzOTMyODAwMTR8QUIgaGVhcmluZyBhc3Nlc3NtZW50IGxpc3R8MjAwNzA3MTgxNDU5
+MjF8QURNSVRUSU5HfCIifHx8fHx8fHwwfDB8IiJ8IiIN</inboundTemplate>
+        <inboundProtocol>HL7V2</inboundProtocol>
+        <outboundProtocol>HL7V2</outboundProtocol>
+        <inboundProperties>
+          <property name="convertLFtoCR">true</property>
+        </inboundProperties>
+        <outboundProperties>
+          <property name="convertLFtoCR">true</property>
+          <property name="handleRepetitions">false</property>
+          <property name="handleSubcomponents">false</property>
+          <property name="stripNamespaces">true</property>
+          <property name="useStrictParser">false</property>
+          <property name="useStrictValidation">false</property>
+        </outboundProperties>
+      </transformer>
+      <filter>
+        <rules>
+          <rule>
+            <sequenceNumber>0</sequenceNumber>
+            <name>Accept message if &quot;msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString()&quot; equals &quot;ORM&quot; or &quot;ORR&quot;</name>
+            <data class="map">
+              <entry>
+                <string>Values</string>
+                <list>
+                  <string>&quot;ORM&quot;</string>
+                  <string>&quot;ORR&quot;</string>
+                </list>
+              </entry>
+              <entry>
+                <string>Name</string>
+                <string></string>
+              </entry>
+              <entry>
+                <string>Field</string>
+                <string>msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString()</string>
+              </entry>
+              <entry>
+                <string>OriginalField</string>
+                <string></string>
+              </entry>
+              <entry>
+                <string>Equals</string>
+                <string>1</string>
+              </entry>
+            </data>
+            <type>Rule Builder</type>
+            <script>if(msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString() == &quot;ORM&quot; || msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString() == &quot;ORR&quot;)
+{
+return true;
+}
+return false;</script>
+            <operator>NONE</operator>
+          </rule>
+        </rules>
+      </filter>
+      <transportName>File Writer</transportName>
+      <mode>DESTINATION</mode>
+      <enabled>true</enabled>
+      <version>2.2.1.5861</version>
+    </connector>
+  </destinationConnectors>
+  <properties>
+    <property name="clearGlobalChannelMap">true</property>
+    <property name="dont_store_filtered">false</property>
+    <property name="encryptData">false</property>
+    <property name="error_messages_only">false</property>
+    <property name="initialState">stopped</property>
+    <property name="max_message_age">1</property>
+    <property name="store_messages">true</property>
+    <property name="synchronous">true</property>
+    <property name="transactional">false</property>
+  </properties>
+  <preprocessingScript>// Modify the message variable below to pre process data
+return message;</preprocessingScript>
+  <postprocessingScript>// This script executes once after a message has been processed
+return;</postprocessingScript>
+  <deployScript>// This script executes once when the mule engine is started
+// You only have access to the globalMap here to persist data
+return;</deployScript>
+  <shutdownScript>// This script executes once when the mule engine is stopped
+// You only have access to the globalMap here to persist data
+return;</shutdownScript>
+</channel>

@@ -1,0 +1,955 @@
+<channel>
+  <id>549cdc71-6aa9-4356-8ba5-1a3f09aadf74</id>
+  <name>CRIS_OMG-ORU_Q</name>
+  <description>Publishing channel for CRIS RIS ORM &amp; ORU messages.                                                        &#xd;
+Uses Q # &#xd;
+&#xd;
+--== HISTORY ==--&#xd;
+$Id: CRIS_OMG-ORU_Q.xml 323 2012-11-15 08:54:32Z MarkD $ $Rev: 323 $
+04-10-11	MRD	Cloned from CRIS_OMG-ORU_Q&#xd;
+	MRD	Added filter for NOC ORU messages only&#xd;
+18-10-11	MRD	Put source of messages (ORH, NOC) into OBR 19 so subscriber channel can see it.&#xd;
+26-OCT	HS	Modified getPromotedData() call in enqueueing JS Destination to use a channel specific Promoter&#xd;
+11-NOV	HS	Added code to perform advanced publishing/subscription &#xd;
+23/11/11	MRD	Amended  PID 3 transformation to correctly remove non NOC MRS&apos;s&#xd;
+05-12-11	MRD	Modified OMG PID3 processing to accomadate RIS behavior	&#xd;
+20/12/11	MRD	Modified so does not store filtered message data &#xd;
+**** PLEASE CHECK SOURCE/DESTINATION CONNECTION DETAILS WHEN MIGRATING CHANNEL TO NEW ENVIRONMENT ****</description>
+  <enabled>true</enabled>
+  <version>2.2.1.5861</version>
+  <lastModified>
+    <time>1344272956689</time>
+    <timezone>Europe/London</timezone>
+  </lastModified>
+  <revision>11</revision>
+  <sourceConnector>
+    <name>sourceConnector</name>
+    <properties>
+      <property name="DataType">LLP Listener</property>
+      <property name="ackCodeError">AE</property>
+      <property name="ackCodeRejected">AR</property>
+      <property name="ackCodeSuccessful">AA</property>
+      <property name="ackIP"></property>
+      <property name="ackMsgError">An Error Occured Processing Message.</property>
+      <property name="ackMsgRejected">Message Rejected.</property>
+      <property name="ackMsgSuccessful"></property>
+      <property name="ackOnNewConnection">0</property>
+      <property name="ackPort"></property>
+      <property name="bufferSize">65536</property>
+      <property name="charEncoding">hex</property>
+      <property name="charsetEncoding">DEFAULT_ENCODING</property>
+      <property name="checkMSH15">0</property>
+      <property name="host">10.134.138.154</property>
+      <property name="messageEnd">0x1C</property>
+      <property name="messageStart">0x0B</property>
+      <property name="port">21601</property>
+      <property name="processBatchFiles">0</property>
+      <property name="receiveTimeout">0</property>
+      <property name="reconnectInterval">5000</property>
+      <property name="recordSeparator">0x0D</property>
+      <property name="responseFromTransformer">1</property>
+      <property name="responseValue">ACK Message</property>
+      <property name="segmentEnd">0x0D</property>
+      <property name="sendACK">0</property>
+      <property name="serverMode">1</property>
+      <property name="tcpProtocolClassName">org.mule.providers.tcp.protocols.TcpProtocol</property>
+      <property name="useStrictLLP">1</property>
+      <property name="waitForEndOfMessageCharacter">0</property>
+    </properties>
+    <transformer>
+      <steps>
+        <step>
+          <sequenceNumber>0</sequenceNumber>
+          <name>messageControlID</name>
+          <script>var mapping;try { mapping = msg[&apos;MSH&apos;][&apos;MSH.10&apos;][&apos;MSH.10.1&apos;].toString(); }catch (e) { logger.error(e);  mapping = &apos;&apos;;}channelMap.put(&apos;messageControlID&apos;, validate( mapping , &apos;&apos;, new Array()));</script>
+          <type>Mapper</type>
+          <data class="map">
+            <entry>
+              <string>Variable</string>
+              <string>messageControlID</string>
+            </entry>
+            <entry>
+              <string>DefaultValue</string>
+              <string></string>
+            </entry>
+            <entry>
+              <string>Mapping</string>
+              <string>msg[&apos;MSH&apos;][&apos;MSH.10&apos;][&apos;MSH.10.1&apos;].toString()</string>
+            </entry>
+            <entry>
+              <string>RegularExpressions</string>
+              <list/>
+            </entry>
+            <entry>
+              <string>isGlobal</string>
+              <string>channel</string>
+            </entry>
+          </data>
+        </step>
+        <step>
+          <sequenceNumber>1</sequenceNumber>
+          <name>julianDateNow</name>
+          <script>var mapping;try { mapping = DateUtil.getCurrentDate(&quot;yyyyDDD&quot;);; }catch (e) { logger.error(e);  mapping = &apos;&apos;;}channelMap.put(&apos;julianDateNow&apos;, validate( mapping , &apos;&apos;, new Array()));</script>
+          <type>Mapper</type>
+          <data class="map">
+            <entry>
+              <string>Variable</string>
+              <string>julianDateNow</string>
+            </entry>
+            <entry>
+              <string>DefaultValue</string>
+              <string></string>
+            </entry>
+            <entry>
+              <string>Mapping</string>
+              <string>DateUtil.getCurrentDate(&quot;yyyyDDD&quot;);</string>
+            </entry>
+            <entry>
+              <string>RegularExpressions</string>
+              <list/>
+            </entry>
+            <entry>
+              <string>isGlobal</string>
+              <string>channel</string>
+            </entry>
+          </data>
+        </step>
+        <step>
+          <sequenceNumber>2</sequenceNumber>
+          <name>julianDateTimeNow</name>
+          <script>var mapping;try { mapping = DateUtil.getCurrentDate(&quot;DDDHHmmssSSS&quot;);; }catch (e) { logger.error(e);  mapping = &apos;&apos;;}channelMap.put(&apos;julianDateTimeNow&apos;, validate( mapping , &apos;&apos;, new Array()));</script>
+          <type>Mapper</type>
+          <data class="map">
+            <entry>
+              <string>Variable</string>
+              <string>julianDateTimeNow</string>
+            </entry>
+            <entry>
+              <string>DefaultValue</string>
+              <string></string>
+            </entry>
+            <entry>
+              <string>Mapping</string>
+              <string>DateUtil.getCurrentDate(&quot;DDDHHmmssSSS&quot;);</string>
+            </entry>
+            <entry>
+              <string>RegularExpressions</string>
+              <list/>
+            </entry>
+            <entry>
+              <string>isGlobal</string>
+              <string>channel</string>
+            </entry>
+          </data>
+        </step>
+        <step>
+          <sequenceNumber>3</sequenceNumber>
+          <name>event</name>
+          <script>var mapping;try { mapping = msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.2&apos;].toString(); }catch (e) { logger.error(e);  mapping = &apos;&apos;;}channelMap.put(&apos;event&apos;, validate( mapping , &apos;&apos;, new Array()));</script>
+          <type>Mapper</type>
+          <data class="map">
+            <entry>
+              <string>Variable</string>
+              <string>event</string>
+            </entry>
+            <entry>
+              <string>DefaultValue</string>
+              <string></string>
+            </entry>
+            <entry>
+              <string>Mapping</string>
+              <string>msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.2&apos;].toString()</string>
+            </entry>
+            <entry>
+              <string>RegularExpressions</string>
+              <list/>
+            </entry>
+            <entry>
+              <string>isGlobal</string>
+              <string>channel</string>
+            </entry>
+          </data>
+        </step>
+      </steps>
+      <inboundTemplate encoding="base64">TVNIfF5+XCZ8Q1IwMXxOT0N8RElFfE5PQ3wyMDA3MDgxNTE1NTk1M3x8QURUXkExM3xRMzk3ODIz
+NVQ0MDQyODU3WDQyMTg1MXxQfDIuMw1FVk58QTEzfDIwMDcwODE1MTU0OTAwfHx8Xkd1cHRhXlBv
+b2phXl5eXl5eXlBSU05MDVBJRHwxfDEwMDE2MTc0Xl5eTk9DLU1STl5NUk5eIiJ8MTAwMTYxNzRe
+Xl5OT0MtTVJOXk1STl4iIn4xMTExMTExMTExXl5eTkhTTkJSXk5IU05NQlJ8fFpaVEVTVEReSU5Q
+QVReXl5eXkNVUlJFTlR8fDE5NzkwMTAxfDF8fCIifE5vIEZpeGVkIEFib2RlXl5eIiJeWlo5OSAz
+VlpeIiJeSE9NRV5eIiJ8fHx8IiJ8TnwiInw1Mzc2OF5eXk5PQy1FbmNudHIgTnVtYmVyXkZJTk5C
+Ul4iInx8fHxIfHx8MHwiInwiInwiInx8IiINTlRFfDF8UE1fVFJBTlNBQ1RJT058Y29tbWVudHMN
+UEQxfCIifCIifF5eRTgyMDUxfEc5MjAwNDA3XkhBXkh8IiJ8fCIifCIiDVpQSXwxfHx8fHx8fHwi
+InxHOTIwMDQwN15IQV5IfHwiInwiInwiInwiInx8fHx8fHwiIg1aRUl8MQ1QVjF8MXxJTlBBVElF
+TlR8Tk9DLU1heWZhaXJeTWF5ZmFpcl4xOF5OT0NeXkJFRF5NdXNjfDIxfHxOT0MtTWF5ZmFpcl5N
+YXlmYWlyXjE4Xk5PQ15eXk11c2N8UkJGODY4XkFybm90dF5LZXJyaWVeXl5eXl5OSFNDT05TVUxU
+TkJSXlBSU05MXl5eTk9OR1BeIiJ8RzgzMDYzNDBeR0FCQUxMQV5ORV5eXl5eXkVYVElEXlBSU05M
+Xl5eRVhUSUReIiJ8fDExMHwiInwiInwiInw1NHwiInwiInx8SU5QQVRJRU5UfDExNzczNF5eXl5W
+SVNJVElEfCIifHwiInx8fHx8fHx8fHx8fHx8IiJ8IiJ8IiJ8Tk9DfHxBQ1RJVkV8fHwyMDA3MDgx
+NTE1MDIzNA1QVjJ8fDF8fHx8fCIifHx8fHx8IiJ8fHx8fHx8fCIifCIifF5eNjQ3ODQzDVpWSXwi
+Inx8fHx8MzE0fHx8IiJ8IiJ8fCIifHwiInwyMDA3MDgxNTE1NDIwMA1PQlh8MXxDRHxQQVNPVkVS
+U0VBU3x8OA1PQlh8MnxDRHxQQVNTSVRFQ09ERXx8dGhpc2l0ZQ1PQlh8M3xDRHxBUFBUUkVRUlRF
+fHxOT0MNT0JYfDR8Q0R8RlRDQVJFQUREfHxOTw1PQlh8NXxDRHxGVEFEREVNQ3x8Tk8NT0JYfDZ8
+Q0R8RlRHVUFSREFERHx8Tk8NT0JYfDd8Q0R8RlRIT01FQUREfHxOTw1PQlh8OHxDRHxGVEFERE5P
+S3x8Tk8NT0JYfDl8Q0R8RlRURU1QQUREUkVTfHxOTw1PQlh8MTB8Q0R8TkZBfHxZRVMNT0JYfDEx
+fFNUfFNIQURJU1BMQVl8fFNvdXRoIFdlc3QgTG9uZG9uIFNIQQ1PQlh8MTJ8Q0R8UEVSU09OVUtS
+RVN8fFlFUw0=</inboundTemplate>
+      <outboundTemplate encoding="base64">Cg==</outboundTemplate>
+      <inboundProtocol>HL7V2</inboundProtocol>
+      <outboundProtocol>HL7V2</outboundProtocol>
+      <inboundProperties>
+        <property name="convertLFtoCR">true</property>
+        <property name="handleRepetitions">true</property>
+        <property name="handleSubcomponents">true</property>
+        <property name="stripNamespaces">true</property>
+        <property name="useStrictParser">false</property>
+        <property name="useStrictValidation">false</property>
+      </inboundProperties>
+      <outboundProperties>
+        <property name="convertLFtoCR">true</property>
+        <property name="handleRepetitions">true</property>
+        <property name="handleSubcomponents">true</property>
+        <property name="stripNamespaces">true</property>
+        <property name="useStrictParser">false</property>
+        <property name="useStrictValidation">false</property>
+      </outboundProperties>
+    </transformer>
+    <filter>
+      <rules/>
+    </filter>
+    <transportName>LLP Listener</transportName>
+    <mode>SOURCE</mode>
+    <enabled>true</enabled>
+    <version>2.2.1.5861</version>
+  </sourceConnector>
+  <destinationConnectors>
+    <connector>
+      <name>journal</name>
+      <properties>
+        <property name="DataType">File Writer</property>
+        <property name="FTPAnonymous">1</property>
+        <property name="binary">0</property>
+        <property name="charsetEncoding">DEFAULT_ENCODING</property>
+        <property name="errorOnExists">0</property>
+        <property name="host">/folders/journals/CRIS_OMG-ORU/${date.get(&apos;yyMMdd&apos;)}/</property>
+        <property name="outputAppend">0</property>
+        <property name="outputPattern">${message.type}_${messageControlID}_${COUNT}.hl7</property>
+        <property name="passive">1</property>
+        <property name="password">anonymous</property>
+        <property name="scheme">file</property>
+        <property name="secure">1</property>
+        <property name="template">${message.rawData}</property>
+        <property name="temporary">0</property>
+        <property name="timeout">10000</property>
+        <property name="username">anonymous</property>
+        <property name="validateConnections">1</property>
+      </properties>
+      <transformer>
+        <steps>
+          <step>
+            <sequenceNumber>0</sequenceNumber>
+            <name>CreateACK</name>
+            <script>// Create a &apos;base&apos; ack message that can be modified and returned by the 
+// channel post-processor 
+//MSH
+tmp[&apos;MSH&apos;][&apos;MSH.3&apos;][&apos;MSH.3.1&apos;] = msg[&apos;MSH&apos;][&apos;MSH.5&apos;][&apos;MSH.5.1&apos;].toString();
+tmp[&apos;MSH&apos;][&apos;MSH.4&apos;][&apos;MSH.4.1&apos;] = msg[&apos;MSH&apos;][&apos;MSH.6&apos;][&apos;MSH.6.1&apos;].toString();
+tmp[&apos;MSH&apos;][&apos;MSH.5&apos;][&apos;MSH.5.1&apos;] = msg[&apos;MSH&apos;][&apos;MSH.3&apos;][&apos;MSH.3.1&apos;].toString();
+tmp[&apos;MSH&apos;][&apos;MSH.6&apos;][&apos;MSH.6.1&apos;] = msg[&apos;MSH&apos;][&apos;MSH.4&apos;][&apos;MSH.4.1&apos;].toString();
+
+tmp[&apos;MSH&apos;][&apos;MSH.10&apos;][&apos;MSH.10.1&apos;] = msg[&apos;MSH&apos;][&apos;MSH.10&apos;][&apos;MSH.10.1&apos;].toString();
+tmp[&apos;MSH&apos;][&apos;MSH.11&apos;][&apos;MSH.11.1&apos;] = msg[&apos;MSH&apos;][&apos;MSH.11&apos;][&apos;MSH.11.1&apos;].toString();
+tmp[&apos;MSH&apos;][&apos;MSH.12&apos;][&apos;MSH.12.1&apos;] = msg[&apos;MSH&apos;][&apos;MSH.12&apos;][&apos;MSH.12.1&apos;].toString();
+tmp[&apos;MSH&apos;][&apos;MSH.7&apos;][&apos;MSH.7.1&apos;] = DateUtil.getCurrentDate(&quot;yyyyMMddHHmmss&quot;);
+
+// MSA
+tmp[&apos;MSA&apos;][&apos;MSA.2&apos;][&apos;MSA.2.1&apos;] = msg[&apos;MSH&apos;][&apos;MSH.10&apos;][&apos;MSH.10.1&apos;].toString();
+tmp[&apos;MSA&apos;][&apos;MSA.3&apos;][&apos;MSA.3.1&apos;] = &quot;Succesfully journaled and en-queued&quot;;
+// Save the message
+channelMap.put(&apos;templateAck&apos;,tmp);</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// Create a &apos;base&apos; ack message that can be modified and returned by the 
+// channel post-processor 
+//MSH
+tmp[&apos;MSH&apos;][&apos;MSH.3&apos;][&apos;MSH.3.1&apos;] = msg[&apos;MSH&apos;][&apos;MSH.5&apos;][&apos;MSH.5.1&apos;].toString();
+tmp[&apos;MSH&apos;][&apos;MSH.4&apos;][&apos;MSH.4.1&apos;] = msg[&apos;MSH&apos;][&apos;MSH.6&apos;][&apos;MSH.6.1&apos;].toString();
+tmp[&apos;MSH&apos;][&apos;MSH.5&apos;][&apos;MSH.5.1&apos;] = msg[&apos;MSH&apos;][&apos;MSH.3&apos;][&apos;MSH.3.1&apos;].toString();
+tmp[&apos;MSH&apos;][&apos;MSH.6&apos;][&apos;MSH.6.1&apos;] = msg[&apos;MSH&apos;][&apos;MSH.4&apos;][&apos;MSH.4.1&apos;].toString();
+
+tmp[&apos;MSH&apos;][&apos;MSH.10&apos;][&apos;MSH.10.1&apos;] = msg[&apos;MSH&apos;][&apos;MSH.10&apos;][&apos;MSH.10.1&apos;].toString();
+tmp[&apos;MSH&apos;][&apos;MSH.11&apos;][&apos;MSH.11.1&apos;] = msg[&apos;MSH&apos;][&apos;MSH.11&apos;][&apos;MSH.11.1&apos;].toString();
+tmp[&apos;MSH&apos;][&apos;MSH.12&apos;][&apos;MSH.12.1&apos;] = msg[&apos;MSH&apos;][&apos;MSH.12&apos;][&apos;MSH.12.1&apos;].toString();
+tmp[&apos;MSH&apos;][&apos;MSH.7&apos;][&apos;MSH.7.1&apos;] = DateUtil.getCurrentDate(&quot;yyyyMMddHHmmss&quot;);
+
+// MSA
+tmp[&apos;MSA&apos;][&apos;MSA.2&apos;][&apos;MSA.2.1&apos;] = msg[&apos;MSH&apos;][&apos;MSH.10&apos;][&apos;MSH.10.1&apos;].toString();
+tmp[&apos;MSA&apos;][&apos;MSA.3&apos;][&apos;MSA.3.1&apos;] = &quot;Succesfully journaled and en-queued&quot;;
+// Save the message
+channelMap.put(&apos;templateAck&apos;,tmp);</string>
+              </entry>
+            </data>
+          </step>
+        </steps>
+        <inboundTemplate encoding="base64">TVNIfF5+XCZ8U0MwNENFUlR8Tk9DfE5PQ19USUVfQURUfE5PQ3wyMDEwMDkwNzE0MTYwNXx8QURU
+XkEwMnxRNDE4MDA3NTVUNDIzMTA1MDlYMzM3OTI5fFB8Mi4zDUVWTnxBMDJ8MjAxMDA5MDcxNDE1
+NTl8fHxeRGVtZWxeTWVyZWRpdGheXl5eXl5eUFJTTkwNUElEfDF8MTAwNjE2NDFeXl5OT0MtTVJO
+Xk1STl4iInwxMDA2MTY0MV5eXk5PQy1NUk5eTVJOXiIifHxURVNUUEFUSUVOVF5JTlBBVElFTlRB
+MV5eXl5eQ1VSUkVOVHx8MTk4MDAxMDF8Mnx8IiJ8NzNeTm9ydGggV2hhcmYgUmReTG9uZG9uXiIi
+XlcyMUFGXkdCUl5IT01FXl4iInx8fHwiInwiInwiInwxODM5MjdeXl5OT0MtRW5jbnRyIE51bWJl
+cl5GSU5OQlJeIiJ8fHx8QXx8fDB8IiJ8IiJ8IiJ8fCIiDVBEMXwiInwiInxeXk04NTA2OXxHODQz
+MTE1MF5FbmdsYW5kXkVsaXphYmV0aF5KYXluZXwiInx8IiJ8MA1aUEl8MXx8fHx8fHx8IiJ8Rzg0
+MzExNTBeRW5nbGFuZF5FbGl6YWJldGheSmF5bmV8fCIifCIifCIifCIifHx8fHx8fCIiDVpFSXwx
+DU5LMXwxfFRFU1RQQVRJRU5UXkVNQ15eXl5eQ1VSUkVOVHxCfDM3Xk5vcnRoIFdoYXJmIFJkXkxv
+bmRvbl4iIl5XMjFBRl4iIl5eXiIifHx8RU1FUkdDT058fHx8fHx8fHx8fHx8IiINTksxfDJ8VEVT
+VFBBVElFTlReTk9LXl5eXl5DVVJSRU5UfENEOjYxNzcyNDB8MzdeTm9ydGggV2hhcmYgUmReTG9u
+ZG9uXiIiXlcyMUFGXkdCUl5eXiIifHx8RkFNSUxZTUVNfHx8fHx8fHx8MTk4MDAxMDF8fHx8IiIN
+TksxfDN8VEVTVFBBVElFTlReUEFSRU5UXl5eXl5DVVJSRU5UfENEOjE1MzQ4OTY0fE5vIEZpeGVk
+IEFib2RlXl5eIiJeWlo5OSAzVlpeR0JSXl5eIiJ8fHxHVUFSRElBTnx8fHx8fHx8fDE5ODAwMTAx
+fHx8fCIiDU5LMXw0fFRFU1RQQVRJRU5UXk5PS15eXl5eQ1VSUkVOVHxDRDo2MTc3MjQwfDM3Xk5v
+cnRoIFdoYXJmIFJkXkxvbmRvbl4iIl5XMjFBRl5HQlJeXl4iInx8fE5PS3x8fHx8fHx8fDE5ODAw
+MTAxfHx8fCIiDU5LMXw1fFRFU1RQQVRJRU5UXlBBUkVOVF5eXl5eQ1VSUkVOVHxDRDoxNTM0ODk2
+NHx8fHxGQU1JTFlNRU18fHx8fHx8fHwxOTgwMDEwMXx8fHwiIg1OSzF8NnxURVNUUEFUSUVOVF5F
+TUNeXl5eXkNVUlJFTlR8Qnx8fHxGQU1JTFlNRU18fHx8fHx8fHx8fHx8IiINTksxfDd8VEVTVFBB
+VElFTlReTkVXQk9STkExXl5eXl5DVVJSRU5UfENEOjYxNzcyNDB8fHx8RkFNSUxZTUVNfHx8fHx8
+fHx8MjAwOTA5Mjl8fHx8IiINUFYxfDF8SU5QQVRJRU5UfE5PQy1XYXJkIEFeMDNeMDZeTk9DXl5C
+RUReTXVzY3wyMnx8Tk9DLVdhcmQgQV4wM14wOV5OT0NeXl5NdXNjfFJCRjg2OF5Bcm5vdHReS2Vy
+cmllXl5eXl5eTkhTQ09OU1VMVE5CUl5QUlNOTF5eXk5PTkdQXiIifEc4NDMxMTUwXkVuZ2xhbmRe
+RWxpemFiZXRoXkpheW5lXl5eXl5FWFRJRF5QUlNOTF5eXkVYVElEXiIifjM4MzYxMDg2NjAzMF5F
+bmdsYW5kXkVsaXphYmV0aF5KYXluZV5eXl5eRFJOQlJeUFJTTkxeXl5PUkdEUl4iInxeTk9DLUNv
+bnN1bHRhbnReVGVzdF5eXl5eXl5QUlNOTHwxMTB8IiJ8IiJ8IiJ8MTl8IiJ8IiJ8fElOUEFUSUVO
+VHw0MzYwMzdeXiIiXl5WSVNJVElEfCIifHwiInx8fHx8fHx8fHx8fHx8IiJ8IiJ8IiJ8Tk9DfHxB
+Q1RJVkV8fHwyMDA5MDkyOTEzMDQwMA1QVjJ8fDF8fE9USEVSfHx8IiJ8fHx8fHwiInx8fHx8fHx8
+IiJ8IiJ8Xl42NDc4NDMNWlZJfCIifHx8fHwzMTR8fHwiInwiInx8IiJ8fCIifDIwMTAwOTA3MTQx
+NTU5fHx8fHx8fHx8fHx8fHwiInwiIg1PQlh8MXxDRHxQQVNPVkVSU0VBU3x8OA1PQlh8MnxDRHxQ
+QVNTSVRFQ09ERXx8dGhpc2l0ZQ1PQlh8M3xOTXxFTUNNQUlOVHx8MQ1PQlh8NHxDRHxITEVBVkVT
+VEFUVVN8fENEOjE1NDI1NzkwDU9CWHw1fERUfFBMTkRfUkRBVEV8fDIwMTAwNTIyMDAwMDAwDU9C
+WHw2fENEfEFQUFRSRVFSVEV8fE5PQw1PQlh8N3xDRHxGVENPUlJBRERSRVN8fE5PDU9CWHw4fENE
+fEZUQURERU1DfHxZRVMNT0JYfDl8Q0R8RlRHVUFSREFERHx8WUVTDU9CWHwxMHxDRHxGVEhPTUVB
+RER8fFlFUw1PQlh8MTF8Q0R8RlRBREROT0t8fFlFUw1PQlh8MTJ8Q0R8RlRURU1QQUREUkVTfHxO
+Tw1PQlh8MTN8Q0R8TkZBfHxOTw1PQlh8MTR8Q0R8UEVSU09OVUtSRVN8fFllcw1ERzF8MXxTTk1D
+VHwyNTM2MDQ1MDEzfE1SU0EgaW5mZWN0aW9ufDIwMTAwMTIwMDAwMDAwfEFETUlUVElOR3wiInx8
+fHx8fHx8MXwxMjk5OTg2Xk5PQy1Db25zdWx0YW50ICwgVGVzdHwiInwiIg1ERzF8MnxTTk1DVHw1
+MjQyMDE1fENhdml0eXwyMDEwMDEyNzAwMDAwMHxBRE1JVFRJTkd8IiJ8fHx8fHx8fDJ8MTI5OTk4
+Nl5OT0MtQ29uc3VsdGFudCAsIFRlc3R8IiJ8IiINWlUxfHx8fHx8fHx8fHx8fENEOjAuMDAwMDAw
+fHx8fHx8fHx8fHx8fHwN</inboundTemplate>
+        <outboundTemplate encoding="base64">TVNIfF5+XCZ8TWlydGh8U2VuZGluZyBGYWNpbGl0eXxSZWNlaXZpbmcgQXBwbGljYXRpb258UmVj
+ZWl2aW5nIEZhY2lsaXR5fDIwMDgwMjA4MTYzODAwfHxBQ0t8TWVzc2FnZSBDb250cm9sIElEfFB8
+Mi40fHx8DQpNU0F8QUF8TWVzc2FnZSBDb250cm9sIElEfFRleHQgTWVzc2FnZQ0K</outboundTemplate>
+        <inboundProtocol>HL7V2</inboundProtocol>
+        <outboundProtocol>HL7V2</outboundProtocol>
+        <inboundProperties>
+          <property name="convertLFtoCR">true</property>
+          <property name="handleRepetitions">true</property>
+          <property name="handleSubcomponents">true</property>
+          <property name="stripNamespaces">true</property>
+          <property name="useStrictParser">false</property>
+          <property name="useStrictValidation">false</property>
+        </inboundProperties>
+        <outboundProperties>
+          <property name="convertLFtoCR">true</property>
+          <property name="handleRepetitions">false</property>
+          <property name="handleSubcomponents">false</property>
+          <property name="stripNamespaces">true</property>
+          <property name="useStrictParser">false</property>
+          <property name="useStrictValidation">false</property>
+        </outboundProperties>
+      </transformer>
+      <filter>
+        <rules/>
+      </filter>
+      <transportName>File Writer</transportName>
+      <mode>DESTINATION</mode>
+      <enabled>true</enabled>
+      <version>2.2.1.5861</version>
+    </connector>
+    <connector>
+      <name>enqueue_OMG-ORG</name>
+      <properties>
+        <property name="DataType">JavaScript Writer</property>
+        <property name="host">sink</property>
+        <property name="script">try
+{
+	// ---=== PROMOTION LOGIC BEGIN
+
+	//HS 11-10-10
+	//The value of this variable should only be altered when there is more than one
+	//enqueueing destination for this channel, otherwise it can be left unchanged.	
+	var channelDestination = &apos;enqueue_ORM&apos;;
+
+    //get the attribute type map from the globalMap
+	// md 23/09/10 var messageAttributeTypeMap = globalMap.get(getChannelName() + &quot;_promotableCollection&quot;);
+    var messageAttributeTypeMap = getPromotableCollection();
+
+	//get destinationQueueMap variable that is held on global map. (see channelInitializer template)
+	// md 23/09/10 var destinationQueueMap = globalMap.get(getChannelName() + &quot;_destinationQueueMap&quot;);
+    var destinationQueueMap = getDestinationQueueMap();
+
+	//from the destinationQueueMap (which holds &lt;K,V&gt; pairs of &lt;destination name, queue name&gt;
+	//to get the queue that this destination publishes to.
+
+	//05-10-2010 HS
+	//Modified code so channelDestination is hardcoded to enqueue to queue
+	//var destinationQ = destinationQueueMap.get(channelDestination);
+	var destinationQ = destinationQueueMap.get(channelDestination);
+
+	//get the appropriate list of attribute types for the specific queue
+	var messageAttributeTypeList = messageAttributeTypeMap.get(destinationQ);
+   		
+	//extract the attribute values for this message		
+//	var attributeList = Packages.nhs.ohis.si.queueing.Promoter.getPromotedData(channelMap.get(&apos;msgXML&apos;), messageAttributeTypeList);
+	//25-OCT-2011 HS    Modified code to use channel specific instance of promoter (not static method)
+	var attributeList = getPromoter().getPromotedData(channelMap.get(&apos;msgXML&apos;), messageAttributeTypeList);
+
+	// ---=== PROMOTION LOGIC END
+
+	// ---=== ENQUEUE LOGIC BEGIN
+	
+    //connection definitions are defined when channel is deployed.	    
+/*
+	Packages.nhs.ohis.si.queueing.MessageQueuer.putMessageOnQueue(getChannelName(),
+																  channelDestination, 
+                                                                  getQueueDBConnection(), 
+                                                                  channelMap.get(&apos;msgXML&apos;), 
+                                                                  attributeList);
+*/
+	var lastMsgNum = Packages.nhs.ohis.si.queueing.MessageQueuer.putMessageOnQueue(getChannelName(),
+																  channelDestination, 
+                                                                  getQueueDBConnection(), 
+                                                                  channelMap.get(&apos;msgXML&apos;), 
+                                                                  attributeList);
+	
+	setLastPubMsgNbr(destinationQ, lastMsgNum);
+	// ---=== ENQUEUE LOGIC END
+
+
+
+}
+catch (e)
+{
+	 // Throw the error so that the the reponse object gets failure status used by the postprocessot
+     // may need to filter out and not fail some of the exceptions returned by putMessageOnQueue
+     // Leave error managment to the postprocessor that can alert and 
+     // stop the chanell etc
+     logger.error(&quot;An exception occurred in destination channel [&quot; + getChannelName() + &quot;] script. Error name: &quot; + e.name + &quot;. Error message: &quot; + e.message);
+
+	 throw e;
+}</property>
+      </properties>
+      <transformer>
+        <steps>
+          <step>
+            <sequenceNumber>0</sequenceNumber>
+            <name>PID3</name>
+            <script>// remove ORH MRN prefix and any RBF MRN
+
+try {
+	var index = 0;
+	var delCount = 0; // used to adjust indexing if deletion occures
+	for each (pid3 in msg[&apos;PID&apos;][&apos;PID.3&apos;] ) {
+		if (pid3[&apos;PID.3.5&apos;].toString() == &quot;MR&quot;){
+			if(pid3[&apos;PID.3.4&apos;].toString() != &quot;RBF03&quot;) {
+				// logger.error(&apos;Deleting pid seq&apos; + index);
+				delete msg[&apos;PID&apos;][&apos;PID.3&apos;][index - delCount];
+				delCount++;
+			}
+		}
+		
+		index++;
+	}
+}
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( enqueue_OMG-ORG PID3 ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// remove ORH MRN prefix and any RBF MRN
+
+try {
+	var index = 0;
+	var delCount = 0; // used to adjust indexing if deletion occures
+	for each (pid3 in msg[&apos;PID&apos;][&apos;PID.3&apos;] ) {
+		if (pid3[&apos;PID.3.5&apos;].toString() == &quot;MR&quot;){
+			if(pid3[&apos;PID.3.4&apos;].toString() != &quot;RBF03&quot;) {
+				// logger.error(&apos;Deleting pid seq&apos; + index);
+				delete msg[&apos;PID&apos;][&apos;PID.3&apos;][index - delCount];
+				delCount++;
+			}
+		}
+		
+		index++;
+	}
+}
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( enqueue_OMG-ORG PID3 ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>1</sequenceNumber>
+            <name>Mark OBR with org message source </name>
+            <script>try {
+	msg[&apos;OBR&apos;][&apos;OBR.19&apos;][&apos;OBR.19.1&apos;] = &apos;NOC&apos;;
+}
+catch(e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( mark OBR with org source ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>try {
+	msg[&apos;OBR&apos;][&apos;OBR.19&apos;][&apos;OBR.19.1&apos;] = &apos;NOC&apos;;
+}
+catch(e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( mark OBR with org source ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>2</sequenceNumber>
+            <name>Put message XML in channelMap</name>
+            <script>//Put internal Mirth XML representation of message onto channel map.
+//This allows it to be used in the Javascript of the channel.
+
+channelMap.put(&apos;msgXML&apos;,msg);</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>//Put internal Mirth XML representation of message onto channel map.
+//This allows it to be used in the Javascript of the channel.
+
+channelMap.put(&apos;msgXML&apos;,msg);</string>
+              </entry>
+            </data>
+          </step>
+        </steps>
+        <inboundTemplate encoding="base64"></inboundTemplate>
+        <outboundTemplate encoding="base64"></outboundTemplate>
+        <inboundProtocol>HL7V2</inboundProtocol>
+        <outboundProtocol>HL7V2</outboundProtocol>
+        <inboundProperties>
+          <property name="convertLFtoCR">true</property>
+          <property name="handleRepetitions">true</property>
+          <property name="handleSubcomponents">true</property>
+          <property name="stripNamespaces">true</property>
+          <property name="useStrictParser">false</property>
+          <property name="useStrictValidation">false</property>
+        </inboundProperties>
+        <outboundProperties>
+          <property name="convertLFtoCR">true</property>
+          <property name="handleRepetitions">false</property>
+          <property name="handleSubcomponents">false</property>
+          <property name="stripNamespaces">true</property>
+          <property name="useStrictParser">false</property>
+          <property name="useStrictValidation">false</property>
+        </outboundProperties>
+      </transformer>
+      <filter>
+        <rules>
+          <rule>
+            <sequenceNumber>0</sequenceNumber>
+            <name>Filter for just OMG and ORG messages</name>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>if (
+
+    msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString() == &quot;OMG&quot; ||
+	msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString() == &quot;ORG&quot; 
+	
+)
+
+	{ return true } else { return false};</string>
+              </entry>
+            </data>
+            <type>JavaScript</type>
+            <script>if (
+
+    msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString() == &quot;OMG&quot; ||
+	msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString() == &quot;ORG&quot; 
+	
+)
+
+	{ return true } else { return false};</script>
+            <operator>NONE</operator>
+          </rule>
+        </rules>
+      </filter>
+      <transportName>JavaScript Writer</transportName>
+      <mode>DESTINATION</mode>
+      <enabled>true</enabled>
+      <version>2.2.1.5861</version>
+    </connector>
+    <connector>
+      <name>enqueue_ORU</name>
+      <properties>
+        <property name="DataType">JavaScript Writer</property>
+        <property name="host">sink</property>
+        <property name="script">try
+{
+	// ---=== PROMOTION LOGIC BEGIN
+
+	//HS 11-10-10
+	//The value of this variable should only be altered when there is more than one
+	//enqueueing destination for this channel, otherwise it can be left unchanged.	
+	var channelDestination = &apos;enqueue_ORU&apos;;
+
+    //get the attribute type map from the globalMap
+	// md 23/09/10 var messageAttributeTypeMap = globalMap.get(getChannelName() + &quot;_promotableCollection&quot;);
+    var messageAttributeTypeMap = getPromotableCollection();
+
+	//get destinationQueueMap variable that is held on global map. (see channelInitializer template)
+	// md 23/09/10 var destinationQueueMap = globalMap.get(getChannelName() + &quot;_destinationQueueMap&quot;);
+    var destinationQueueMap = getDestinationQueueMap();
+
+	//from the destinationQueueMap (which holds &lt;K,V&gt; pairs of &lt;destination name, queue name&gt;
+	//to get the queue that this destination publishes to.
+
+	//05-10-2010 HS
+	//Modified code so channelDestination is hardcoded to enqueue to queue
+	//var destinationQ = destinationQueueMap.get(channelDestination);
+	var destinationQ = destinationQueueMap.get(channelDestination);
+
+	//get the appropriate list of attribute types for the specific queue
+	var messageAttributeTypeList = messageAttributeTypeMap.get(destinationQ);
+   		
+	//extract the attribute values for this message		
+//	var attributeList = Packages.nhs.ohis.si.queueing.Promoter.getPromotedData(channelMap.get(&apos;msgXML&apos;), messageAttributeTypeList);
+	//25-OCT-2011 HS    Modified code to use channel specific instance of promoter (not static method)
+	var attributeList = getPromoter().getPromotedData(channelMap.get(&apos;msgXML&apos;), messageAttributeTypeList);
+
+	// ---=== PROMOTION LOGIC END
+
+	// ---=== ENQUEUE LOGIC BEGIN
+	
+    //connection definitions are defined when channel is deployed.	    
+/*
+	Packages.nhs.ohis.si.queueing.MessageQueuer.putMessageOnQueue(getChannelName(),
+																  channelDestination, 
+                                                                  getQueueDBConnection(), 
+                                                                  channelMap.get(&apos;msgXML&apos;), 
+                                                                  attributeList);
+*/
+	var lastMsgNum = Packages.nhs.ohis.si.queueing.MessageQueuer.putMessageOnQueue(getChannelName(),
+																  channelDestination, 
+                                                                  getQueueDBConnection(), 
+                                                                  channelMap.get(&apos;msgXML&apos;), 
+                                                                  attributeList);
+	
+	setLastPubMsgNbr(destinationQ, lastMsgNum);
+	// ---=== ENQUEUE LOGIC END
+
+
+
+}
+catch (e)
+{
+	 // Throw the error so that the the reponse object gets failure status used by the postprocessot
+     // may need to filter out and not fail some of the exceptions returned by putMessageOnQueue
+     // Leave error managment to the postprocessor that can alert and 
+     // stop the chanell etc
+     logger.error(&quot;An exception occurred in destination channel [&quot; + getChannelName() + &quot;] script. Error name: &quot; + e.name + &quot;. Error message: &quot; + e.message);
+
+	 throw e;
+}</property>
+      </properties>
+      <transformer>
+        <steps>
+          <step>
+            <sequenceNumber>0</sequenceNumber>
+            <name>PID3</name>
+            <script>// remove non RBF03 MRN&apos;s
+
+try {
+	var index = 0;
+	var delCount = 0; // used to adjust indexing if deletion occures
+	for each (pid3 in msg[&apos;PID&apos;][&apos;PID.3&apos;] ) {
+		if (pid3[&apos;PID.3.5&apos;].toString() == &quot;MR&quot;){
+			if(pid3[&apos;PID.3.4&apos;].toString() != &quot;RBF03&quot;) {
+				// logger.error(&apos;Deleting pid seq&apos; + index);
+				delete msg[&apos;PID&apos;][&apos;PID.3&apos;][index - delCount];
+				delCount++;
+			}
+		}
+		
+		index++;
+	}
+}
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( enqueue_ORU PID3 ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// remove non RBF03 MRN&apos;s
+
+try {
+	var index = 0;
+	var delCount = 0; // used to adjust indexing if deletion occures
+	for each (pid3 in msg[&apos;PID&apos;][&apos;PID.3&apos;] ) {
+		if (pid3[&apos;PID.3.5&apos;].toString() == &quot;MR&quot;){
+			if(pid3[&apos;PID.3.4&apos;].toString() != &quot;RBF03&quot;) {
+				// logger.error(&apos;Deleting pid seq&apos; + index);
+				delete msg[&apos;PID&apos;][&apos;PID.3&apos;][index - delCount];
+				delCount++;
+			}
+		}
+		
+		index++;
+	}
+}
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( enqueue_ORU PID3 ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>1</sequenceNumber>
+            <name>Put message XML in channelMap</name>
+            <script>//Put internal Mirth XML representation of message onto channel map.
+//This allows it to be used in the Javascript of the channel.
+
+channelMap.put(&apos;msgXML&apos;,msg);</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>//Put internal Mirth XML representation of message onto channel map.
+//This allows it to be used in the Javascript of the channel.
+
+channelMap.put(&apos;msgXML&apos;,msg);</string>
+              </entry>
+            </data>
+          </step>
+        </steps>
+        <inboundTemplate encoding="base64">TVNIfF5+XCZ8UkJGX1RFU1RfUklTfFJCRnxSQkZfVEVTVF9USUV8UkJGfDIwMTEwOTI2MTA1NTA2
+fHxPUlVeUjAxfDIzMzgxMTk0MjowfFB8Mi40fHx8fHx8fA1QSUR8fHw0MzA5Xl5eQ1JJU15QSX4x
+MDEwNDcwOV5eXlJCRjAzXk1SfHxaWlpOT0NPQ1RFU1QwMV5BVk9DRVR8fDE5ODIwODI2fEZ8fHwx
+NzAgRkFWRUxMIERSSVZFXkZVUlpUT05eXk1JTFRPTiBLRVlORVNeTUs0IDFBVHx8MDE5ODI1Njg1
+NTZ8fHx8fHx8fHxIfHx8fHx8fCIifE4NUFYxfHx8fHx8fHx8fHx8fHx8fHx8QQ1PUkN8U0N8fDg3
+OTVeQ1JJU3x8Q018fF5eXjIwMTEwOTI2MTA1Ml5eMXx8MjAxMTA5MjYxMDUzfFJJU1RSQUlOfHxD
+MTUyNDk3MF5CVVJHRSBQRHxSQkYwM1dBUkRDfHwyMDExMDkyNjAwMDB8fDExMHxSQkYwM3xSSVNU
+UkFJTnx8Xl5SQkYwMw1PQlJ8fHw4Nzk1XkNSSVN8WExTUE9eWFIgTHVtYmFyIFNwaW5lIE9ibGlx
+dWVzfHx8fHx8fHx8fHx8fHx8fDY4MTh8UkJGMDAwMDg3OTV8MjAxMTA5MjYxMDUzfHxSfHx8Xl5e
+MjAxMTA5MjYxMDUyXl4xfHx8fHxOT0NSSVMmTk9DIFJJUyBBZG1pbnN0cmF0b3JeMjAxMTA5MjYw
+MDAwfCZCTEFOSyBSQURJT0x8XjIwMTEwOTI2XjIwMTEwOTI2Xl5eXlJCRjAzfCZTaGFoZWVuIE5v
+b3JhbmleMjAxMTA5MjYxMDUzDU9CWHwxfFRYfFhMU1BPXlhSIEx1bWJhciBTcGluZSBPYmxpcXVl
+c15DUklTM3x8W1JlcG9ydCBTdW1tYXJ5XXx8fHx8fEZ8fHwyMDExMDkyNjEwNTN8fE5PQ1JJU15O
+T0MgUklTIEFkbWluc3RyYXRvcg1PQlh8MnxUWHxYTFNQT15YUiBMdW1iYXIgU3BpbmUgT2JsaXF1
+ZXNeQ1JJUzN8fHx8fHx8fEZ8fHwyMDExMDkyNjEwNTN8fE5PQ1JJU15OT0MgUklTIEFkbWluc3Ry
+YXRvcg1PQlh8M3xUWHxYTFNQT15YUiBMdW1iYXIgU3BpbmUgT2JsaXF1ZXNeQ1JJUzN8fENsaW5p
+Y2FsIEhpc3RvcnkgOiBUZXN0aW5nIFB1cnBvc2V8fHx8fHxGfHx8MjAxMTA5MjYxMDUzfHxOT0NS
+SVNeTk9DIFJJUyBBZG1pbnN0cmF0b3INT0JYfDR8VFh8WExTUE9eWFIgTHVtYmFyIFNwaW5lIE9i
+bGlxdWVzXkNSSVMzfHx8fHx8fHxGfHx8MjAxMTA5MjYxMDUzfHxOT0NSSVNeTk9DIFJJUyBBZG1p
+bnN0cmF0b3INT0JYfDV8VFh8WExTUE9eWFIgTHVtYmFyIFNwaW5lIE9ibGlxdWVzXkNSSVMzfHxb
+WFIgTHVtYmFyIFNwaW5lIE9ibGlxdWVzXXx8fHx8fEZ8fHwyMDExMDkyNjEwNTN8fE5PQ1JJU15O
+T0MgUklTIEFkbWluc3RyYXRvcg1PQlh8NnxUWHxYTFNQT15YUiBMdW1iYXIgU3BpbmUgT2JsaXF1
+ZXNeQ1JJUzN8fHx8fHx8fEZ8fHwyMDExMDkyNjEwNTN8fE5PQ1JJU15OT0MgUklTIEFkbWluc3Ry
+YXRvcg1PQlh8N3xUWHxYTFNQT15YUiBMdW1iYXIgU3BpbmUgT2JsaXF1ZXNeQ1JJUzN8fE5vIGFi
+bm9ybWFsaXR5IHdhcyBzZWVuLiBJbiBwYXJ0aWN1bGFyIHRoZSBvdmFyaWVzIGFuZCBraWRuZXlz
+IGFwcGVhciBub3JtYWwufHx8fHx8Rnx8fDIwMTEwOTI2MTA1M3x8Tk9DUklTXk5PQyBSSVMgQWRt
+aW5zdHJhdG9yDU9CWHw4fFRYfFhMU1BPXlhSIEx1bWJhciBTcGluZSBPYmxpcXVlc15DUklTM3x8
+fHx8fHx8Rnx8fDIwMTEwOTI2MTA1M3x8Tk9DUklTXk5PQyBSSVMgQWRtaW5zdHJhdG9y</inboundTemplate>
+        <outboundTemplate encoding="base64"></outboundTemplate>
+        <inboundProtocol>HL7V2</inboundProtocol>
+        <outboundProtocol>HL7V2</outboundProtocol>
+        <inboundProperties>
+          <property name="convertLFtoCR">true</property>
+          <property name="handleRepetitions">true</property>
+          <property name="handleSubcomponents">true</property>
+          <property name="stripNamespaces">true</property>
+          <property name="useStrictParser">false</property>
+          <property name="useStrictValidation">false</property>
+        </inboundProperties>
+        <outboundProperties>
+          <property name="convertLFtoCR">true</property>
+          <property name="handleRepetitions">false</property>
+          <property name="handleSubcomponents">false</property>
+          <property name="stripNamespaces">true</property>
+          <property name="useStrictParser">false</property>
+          <property name="useStrictValidation">false</property>
+        </outboundProperties>
+      </transformer>
+      <filter>
+        <rules>
+          <rule>
+            <sequenceNumber>0</sequenceNumber>
+            <name>Filter ORU messages from NOC</name>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// only pass ORU messages reported from NOC
+
+try {
+	var pass = false;
+
+	if ( msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString() == &quot;ORU&quot;){ 
+		//if(msg[&apos;ORC&apos;][&apos;ORC.21&apos;][&apos;ORC.21.3&apos;].toString() == &apos;RBF03&apos;) {
+		//   	pass = true;
+		//}
+		// backward compatibility with old NOC results feed
+		// avoid leaving old reports uncorrected  
+		//else if( msg[&apos;OBX&apos;][0][&apos;OBX.11&apos;][&apos;OBX.11.1&apos;].toString() == &quot;C&quot;)
+		//	pass = true;
+		//}
+		pass = true;
+	} 
+
+	return pass;
+}
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( ORU and Origin Filter ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</string>
+              </entry>
+            </data>
+            <type>JavaScript</type>
+            <script>// only pass ORU messages reported from NOC
+
+try {
+	var pass = false;
+
+	if ( msg[&apos;MSH&apos;][&apos;MSH.9&apos;][&apos;MSH.9.1&apos;].toString() == &quot;ORU&quot;){ 
+		//if(msg[&apos;ORC&apos;][&apos;ORC.21&apos;][&apos;ORC.21.3&apos;].toString() == &apos;RBF03&apos;) {
+		//   	pass = true;
+		//}
+		// backward compatibility with old NOC results feed
+		// avoid leaving old reports uncorrected  
+		//else if( msg[&apos;OBX&apos;][0][&apos;OBX.11&apos;][&apos;OBX.11.1&apos;].toString() == &quot;C&quot;)
+		//	pass = true;
+		//}
+		pass = true;
+	} 
+
+	return pass;
+}
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( ORU and Origin Filter ) &quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+}</script>
+            <operator>NONE</operator>
+          </rule>
+        </rules>
+      </filter>
+      <transportName>JavaScript Writer</transportName>
+      <mode>DESTINATION</mode>
+      <enabled>true</enabled>
+      <version>2.2.1.5861</version>
+    </connector>
+  </destinationConnectors>
+  <properties>
+    <property name="clearGlobalChannelMap">true</property>
+    <property name="dont_store_filtered">true</property>
+    <property name="encryptData">false</property>
+    <property name="error_messages_only">false</property>
+    <property name="initialState">started</property>
+    <property name="max_message_age">7</property>
+    <property name="store_messages">true</property>
+    <property name="synchronous">true</property>
+    <property name="transactional">false</property>
+  </properties>
+  <preprocessingScript>// Modify the message variable below to pre process data
+return message;</preprocessingScript>
+  <postprocessingScript>// This script executes once after a message has been processed
+
+var cumulativeSuccess = true;
+var badDestMessage = &quot;&quot;;
+
+try {
+	var responseMapKeys = responseMap.keySet();	
+	var destIter = responseMapKeys.iterator();
+	var ackMessage = channelMap.get(&apos;templateAck&apos;);
+
+
+	// Iterate each destination reponse in the response map
+	// all destination must succeed or filter for an ack response
+	while (destIter.hasNext()) {
+     	var destinationName = destIter.next();
+     	var response = responseMap.get(destinationName);	
+     	var status = response.getStatus();
+        
+//04-10/10 HS
+//logger.error(destinationName + &quot;: &quot; + status );
+		
+     	if(status == &apos;SUCCESS&apos; || status == &apos;FILTERED&apos;)
+     	{
+	     	cumulativeSuccess = cumulativeSuccess &amp;&amp; true;
+     	}
+	 	else
+	 	{      
+            cumulativeSuccess = false;
+         	badDestMessage += &apos; &apos; +  destinationName;
+     	}
+	}
+
+	// Modify the ACK message constructed by the journal destination
+    // transformer if one of the destinations failed
+	// In this case AR is intended to cause the sending system 
+    // to retry sending the message.
+	
+	if(!cumulativeSuccess) {
+		ackMessage[&apos;MSA&apos;][&apos;MSA.1&apos;][&apos;MSA.1.1&apos;] = &apos;AR&apos;;
+    	ackMessage[&apos;MSA&apos;][&apos;MSA.3&apos;][&apos;MSA.3.1&apos;] = &apos;TIE End point failed:&apos; + badDestMessage; 
+	}	
+
+	// Convert ACK message from XML to HL7 ready to resend
+	ackMessage = SerializerFactory.getHL7Serializer(false, false, true).fromXML(ackMessage);
+
+	//Put the message onto the response map for the channel reader to find
+	//The channel reader responds from must be pointed at &apos;ACK Message&apos;
+	//optionally stop the channel if one of the destinations has &apos;failed&apos;
+	if(cumulativeSuccess){
+		responseMap.put(&apos;ACK Message&apos;, ResponseFactory.getSuccessResponse(ackMessage));
+	}
+	else {
+		responseMap.put(&apos;ACK Message&apos;, ResponseFactory.getFailureResponse(ackMessage));
+		// comment the following line if you want to return an AR NAK to the sender if error occured
+        throw new Error(&apos;Enqueue failed for destination &apos; + badDestMessage);
+	}
+}
+catch (e)
+{
+	logger.error(&quot;An exception occurred in the post-processor script for the channel [&quot; + getChannelName() + &quot;]. Error name: &quot; + e.name + &quot;. Error message: &quot; + e.message);	
+    stopChannel(channelId);
+}
+finally {
+	return;
+}
+
+</postprocessingScript>
+  <deployScript>
+try
+{	
+	//	30-10-2010 HS    Hardcode the name of the channel	
+	globalMap.put(channelId,&apos;CRIS_OMG-ORU_Q&apos;);
+
+	setQueueDBConnection();
+
+	//Initialize channel	
+	initializeChannelQueueing();
+	
+	return;
+}
+catch (e)
+{
+	logger.error(&quot;An exception occurred in the Deploy script of channel&quot; + getChannelName() + &quot; . Error name: &quot; + e.name + &quot;. Error message: &quot; + e.message);
+}</deployScript>
+  <shutdownScript>// This script executes once when the mule engine is stopped
+// You only have access to the globalMap here to persist data
+return;</shutdownScript>
+</channel>

@@ -1,0 +1,1779 @@
+<channel>
+  <id>38181815-4552-4060-9fee-9d17a49c84fd</id>
+  <name>Q_RIS_ORU_EPR</name>
+  <description>DEPLOY subscribing  channel for radiology ORU messages.&#xd;
+Uses Q # q0019&#xd;
+&#xd;
+09-05-11	MRD	Created form template enque channel.&#xd;
+15-06-11	MRD	Remove patient deatails from PID to avoid patient match failures&#xd;
+27-06-11	MRD	Modified to use standard code template wrapper for translations&#xd;
+29-06-11	MRD	Revise reported and verified status code&#xd;
+21-06-11 	MRD	Retry alert added&#xd;
+08/09/11	MRD	Substitute GUID for message control ID to avoid duplicate rejections by EPR&#xd;
+17-09-11	MRD	Supress OBX.16 &apos;Responsible Observer&apos; to avoid CM issue with validation &#xd;
+22-09-11	MRD	Remove any underscores put into forname to prevent HSS from parsing out middlename&#xd;
+22-09-11	MRD	Supress ORC 12 Ordering provider&#xd;
+	MRD	Populate ORC 16 with Ordering provider subcomponents&#xd;
+26-09-11	MRD	Reverse &apos;Remove any underscores put into forname to prevent HSS from parsing out middlename&apos;&#xd;
+	MRD	Concatenate forename, space and middlename if middlename is present &#xd;
+25-10-11	MRD 	Modified PID processing to pick up ORH &amp; NOC MRN.&#xd;
+27-10-11	HS	Modify duplicate filter to allow NODUP and NOCHK&#xd;
+07-10-11	MRD	Now removes visit id and placer order id if source of order is not OUH&#xd;
+10-11-11	HS	Added code to perform advanced subscription&#xd;
+22-12-11  MRD	Reset destination outbound proerties - no longer process sub-components&#xd;
+28-12-11	MRD	Added filter and alert on absence of patient name&#xd;
+07-02-11	IRHM	Change destination to send to oxnetvtie01 10.134.138.151:6962. &#xd;
+		And in destination template change 07-02-11 change SC04MOCK to SC04CERT&#xd;
+23-02-11	IRHM	Change destination to send to BT IE 10.201.22.165:30052. and re-enabled&#xd;
+10-04-12  MRD	Add patient name, dob and MRN to the report header&#xd;
+10-04-12	MRD	Removed NTE segment with TIE timestamp from report&#xd;
+10-07-12	MRD	Add support for Critical and Abnormal report flagging Track+ IN: 164&#xd;
+19-07-12	MRD	Accomodate special processing for ViewPoint reports Track+ IN: &#xd;
+		PV1, ORC, OBR and OBX&#xd;
+		Amended destination filter to accomadate GE report status on OBR 25&#xd;
+24-07-12	HS	Handling translation of indication codes in OBR-VP destination translation step.&#xd;
+		Ref: Track+ 171&#xd;
+&#xd;
+TO DO:								Completed&#xd;
+&#xd;
+1	MRD	Define and implement translator for viewpoint exam codes      19/07/2012</description>
+  <enabled>true</enabled>
+  <version>2.2.1.5861</version>
+  <lastModified>
+    <time>1351604735300</time>
+    <timezone>Europe/London</timezone>
+  </lastModified>
+  <revision>185</revision>
+  <sourceConnector>
+    <name>sourceConnector</name>
+    <properties>
+      <property name="DataType">JavaScript Reader</property>
+      <property name="host">sink</property>
+      <property name="pollingFrequency">500</property>
+      <property name="pollingType">interval</property>
+      <property name="script">// get context information
+var channelName = getChannelName();
+var subsNumber = getSubscriptionNumber();
+var dqMessage = null;
+
+try 
+{	
+/*
+   	if(subsNumber == null || subsNumber == &quot;&quot;) 
+    {
+		// get de-queue message object of type nhs.ohis.si.queueing.data.dequeuedMessage
+		dqMessage = Packages.nhs.ohis.si.queueing.MessageQueuer.getMessageFromQueue(channelName, getQueueDBConnection());
+	    if(dqMessage.getMessageXML().size() &gt; 0) {
+		   // put duplicate status onto channel map
+   		   setDuplicateStatus(dqMessage.getMessageDuplicateCode());
+		   //put subscription number onto map
+		   setSubscriptionNumber(dqMessage.getSubscriptionNumber());
+		} 
+	}
+    else 
+    {
+		dqMessage = Packages.nhs.ohis.si.queueing.data.DequeuedMessage();
+	}
+*/
+
+	//09-NOV-11 HS&amp;MD 	ADVANCED SUBSCRIBING CODE
+   	if((subsNumber == null || subsNumber == &quot;&quot;) &amp;&amp; shouldPollDB(getQueueID()))
+    {
+		// get de-queue message object of type nhs.ohis.si.queueing.data.dequeuedMessage
+		dqMessage = Packages.nhs.ohis.si.queueing.MessageQueuer.getMessageFromQueue(channelName, getQueueDBConnection());
+	    if(dqMessage.getMessageXML().size() &gt; 0) 
+		{
+			   // put duplicate status onto channel map
+	   		   setDuplicateStatus(dqMessage.getMessageDuplicateCode());
+			   //put subscription number onto map
+			   setSubscriptionNumber(dqMessage.getSubscriptionNumber());
+			   setMsgNumber(dqMessage.getMessageNumber());
+			   setQueueID(dqMessage.getQueueID());			
+		}
+
+		setLastDbPoll();
+	}
+    else 
+    {
+		dqMessage = Packages.nhs.ohis.si.queueing.data.DequeuedMessage();
+	}
+	
+}
+catch(error)
+{
+    var errorMessage = channelName + &quot;: &quot; + error.name + &quot;-&quot; + error.message;
+	logger.error(errorMessage);
+	stopChannel(channelId);
+}
+finally
+{
+	return dqMessage.getMessageXML();
+}</property>
+    </properties>
+    <transformer>
+      <steps/>
+      <inboundTemplate encoding="base64"></inboundTemplate>
+      <outboundTemplate encoding="base64"></outboundTemplate>
+      <inboundProtocol>XML</inboundProtocol>
+      <outboundProtocol>HL7V2</outboundProtocol>
+      <inboundProperties>
+        <property name="stripNamespaces">true</property>
+      </inboundProperties>
+      <outboundProperties>
+        <property name="convertLFtoCR">true</property>
+        <property name="handleRepetitions">true</property>
+        <property name="handleSubcomponents">true</property>
+        <property name="stripNamespaces">true</property>
+        <property name="useStrictParser">false</property>
+        <property name="useStrictValidation">false</property>
+      </outboundProperties>
+    </transformer>
+    <filter>
+      <rules/>
+    </filter>
+    <transportName>JavaScript Reader</transportName>
+    <mode>SOURCE</mode>
+    <enabled>true</enabled>
+    <version>2.2.1.5861</version>
+  </sourceConnector>
+  <destinationConnectors>
+    <connector>
+      <name>destination</name>
+      <properties>
+        <property name="DataType">LLP Sender</property>
+        <property name="ackTimeout">5000</property>
+        <property name="bufferSize">65536</property>
+        <property name="charEncoding">hex</property>
+        <property name="charsetEncoding">DEFAULT_ENCODING</property>
+        <property name="host">10.201.22.165</property>
+        <property name="keepSendSocketOpen">0</property>
+        <property name="maxRetryCount">2</property>
+        <property name="messageEnd">0x1C</property>
+        <property name="messageStart">0x0B</property>
+        <property name="port">30052</property>
+        <property name="processHl7AckResponse">1</property>
+        <property name="queueAckTimeout">1</property>
+        <property name="queuePollInterval">200</property>
+        <property name="reconnectMillisecs">10000</property>
+        <property name="recordSeparator">0x0D</property>
+        <property name="replyChannelId">sink</property>
+        <property name="rotateQueue">0</property>
+        <property name="segmentEnd">0x0D</property>
+        <property name="sendTimeout">5000</property>
+        <property name="tcpProtocolClassName">org.mule.providers.tcp.protocols.TcpProtocol</property>
+        <property name="template">${message.encodedData}</property>
+        <property name="usePersistentQueues">0</property>
+      </properties>
+      <transformer>
+        <steps>
+          <step>
+            <sequenceNumber>0</sequenceNumber>
+            <name>main</name>
+            <script>try {
+	// hold mrn for to add to patinet ID in report 
+	var MRN = &quot;&quot;;
+	// Get reference to translator
+	var translator = getTranslator();
+	// get order location
+	var truncFacility = msg[&apos;ORC&apos;][&apos;ORC.21&apos;][&apos;ORC.21.3&apos;].toString().substring(0,3);
+	// derive IS OUH flag?
+	var isOuh = (truncFacility == &apos;RBF&apos; || truncFacility == &apos;RTH&apos;);
+	// derive reports source - if from Viewpoint then  MSH 3 is &apos;GE&apos;
+	var isVpReport = 	(msg[&apos;MSH&apos;][&apos;MSH.3&apos;][&apos;MSH.3.1&apos;].toString() == &apos;GE&apos;);
+
+	tranMsh();
+	tranPid();
+	
+	if(isVpReport) {
+		tranOrcVp();
+		tranObrVp();
+		tranObxVp();
+	}
+	else {
+		tranPv1();
+		tranOrc();
+		tranObr();
+		tranObx();
+	}
+}
+catch (e) {
+	throw new Error(&quot;ERROR in destination transformer for channel &quot; + getChannelName() + e.toString() + &apos; &apos;);
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>try {
+	// hold mrn for to add to patinet ID in report 
+	var MRN = &quot;&quot;;
+	// Get reference to translator
+	var translator = getTranslator();
+	// get order location
+	var truncFacility = msg[&apos;ORC&apos;][&apos;ORC.21&apos;][&apos;ORC.21.3&apos;].toString().substring(0,3);
+	// derive IS OUH flag?
+	var isOuh = (truncFacility == &apos;RBF&apos; || truncFacility == &apos;RTH&apos;);
+	// derive reports source - if from Viewpoint then  MSH 3 is &apos;GE&apos;
+	var isVpReport = 	(msg[&apos;MSH&apos;][&apos;MSH.3&apos;][&apos;MSH.3.1&apos;].toString() == &apos;GE&apos;);
+
+	tranMsh();
+	tranPid();
+	
+	if(isVpReport) {
+		tranOrcVp();
+		tranObrVp();
+		tranObxVp();
+	}
+	else {
+		tranPv1();
+		tranOrc();
+		tranObr();
+		tranObx();
+	}
+}
+catch (e) {
+	throw new Error(&quot;ERROR in destination transformer for channel &quot; + getChannelName() + e.toString() + &apos; &apos;);
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>1</sequenceNumber>
+            <name>MSH</name>
+            <script>// NOTE that sending/receiving apps, facilities and message type
+// are in outbound template
+function tranMsh() {
+	try { 	
+		// Copy the date/time of message
+		tmp[&apos;MSH&apos;][&apos;MSH.7&apos;] = msg[&apos;MSH&apos;][&apos;MSH.7&apos;];
+
+		// Append exam key to message control ID (BT principles)
+		tmp[&apos;MSH&apos;][&apos;MSH.10&apos;] = msg[&apos;MSH&apos;][&apos;MSH.10&apos;][&apos;MSH.10.1&apos;].toString() + &quot;-&quot; + msg[&apos;ORC&apos;][&apos;ORC.3&apos;][&apos;ORC.3.1&apos;].toString();
+	}
+
+	catch (e) {
+		throw new Error(&apos; in function tranMsh() &apos; + e.toString());
+	}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// NOTE that sending/receiving apps, facilities and message type
+// are in outbound template
+function tranMsh() {
+	try { 	
+		// Copy the date/time of message
+		tmp[&apos;MSH&apos;][&apos;MSH.7&apos;] = msg[&apos;MSH&apos;][&apos;MSH.7&apos;];
+
+		// Append exam key to message control ID (BT principles)
+		tmp[&apos;MSH&apos;][&apos;MSH.10&apos;] = msg[&apos;MSH&apos;][&apos;MSH.10&apos;][&apos;MSH.10.1&apos;].toString() + &quot;-&quot; + msg[&apos;ORC&apos;][&apos;ORC.3&apos;][&apos;ORC.3.1&apos;].toString();
+	}
+
+	catch (e) {
+		throw new Error(&apos; in function tranMsh() &apos; + e.toString());
+	}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>2</sequenceNumber>
+            <name>PID</name>
+            <script>function tranPid() {
+	try {
+		
+		// Iterate over patient identifiers
+		// output MRN and NHS only
+		var newPID3 = &quot;&quot;;
+		var pidCount = 0;
+		var forename = &quot;&quot;;
+		
+
+		for each ( pid3 in msg[&apos;PID&apos;][&apos;PID.3&apos;])	{
+			auth = pid3[&apos;PID.3.4&apos;].toString();
+			type = pid3[&apos;PID.3.5&apos;].toString();
+		
+        	if (auth == &quot;NHS&quot; ) {
+				if(pidCount &gt; 0) newPID3 += &quot;~&quot;;
+				newPID3 += removeSpaces(pid3[&apos;PID.3.1&apos;].toString()) + &quot;^^^NHSNBR^NHSNMBR&quot;;
+				pidCount++;
+			}
+			else if (auth == &quot;RBF03&quot; || auth == &quot;RTH&quot;) {
+				if(pidCount &gt; 0) newPID3 += &quot;~&quot;;
+				newPID3 += pid3[&apos;PID.3.1&apos;].toString() + &quot;^^^&quot; + &quot;NOC&quot; + &quot;-MRN^MRN&quot;;
+
+		    	MRN = pid3[&apos;PID.3.1&apos;].toString();
+				pidCount++;
+			}
+		}
+		tmp[&apos;PID&apos;][&apos;PID.3&apos;] = newPID3;	
+
+		// Move patient demographics for unsolicited results and admin purposes
+		tmp[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.1&apos;] = msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.1&apos;].toString();
+	
+		if(msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.3&apos;].toString().length &gt; 0) {
+			forename = msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.2&apos;].toString() + &apos; &apos; + msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.3&apos;].toString();
+		}
+		else {
+			forename = msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.2&apos;].toString();
+		}
+		tmp[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.2&apos;] = forename;
+		tmp[&apos;PID&apos;][&apos;PID.7&apos;][&apos;PID.7.1&apos;] = msg[&apos;PID&apos;][&apos;PID.7&apos;][&apos;PID.7.1&apos;].toString();
+
+	}
+
+	catch (e) {
+		throw new Error(&apos; in function tranPid() &apos; + e.toString());
+	}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>function tranPid() {
+	try {
+		
+		// Iterate over patient identifiers
+		// output MRN and NHS only
+		var newPID3 = &quot;&quot;;
+		var pidCount = 0;
+		var forename = &quot;&quot;;
+		
+
+		for each ( pid3 in msg[&apos;PID&apos;][&apos;PID.3&apos;])	{
+			auth = pid3[&apos;PID.3.4&apos;].toString();
+			type = pid3[&apos;PID.3.5&apos;].toString();
+		
+        	if (auth == &quot;NHS&quot; ) {
+				if(pidCount &gt; 0) newPID3 += &quot;~&quot;;
+				newPID3 += removeSpaces(pid3[&apos;PID.3.1&apos;].toString()) + &quot;^^^NHSNBR^NHSNMBR&quot;;
+				pidCount++;
+			}
+			else if (auth == &quot;RBF03&quot; || auth == &quot;RTH&quot;) {
+				if(pidCount &gt; 0) newPID3 += &quot;~&quot;;
+				newPID3 += pid3[&apos;PID.3.1&apos;].toString() + &quot;^^^&quot; + &quot;NOC&quot; + &quot;-MRN^MRN&quot;;
+
+		    	MRN = pid3[&apos;PID.3.1&apos;].toString();
+				pidCount++;
+			}
+		}
+		tmp[&apos;PID&apos;][&apos;PID.3&apos;] = newPID3;	
+
+		// Move patient demographics for unsolicited results and admin purposes
+		tmp[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.1&apos;] = msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.1&apos;].toString();
+	
+		if(msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.3&apos;].toString().length &gt; 0) {
+			forename = msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.2&apos;].toString() + &apos; &apos; + msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.3&apos;].toString();
+		}
+		else {
+			forename = msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.2&apos;].toString();
+		}
+		tmp[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.2&apos;] = forename;
+		tmp[&apos;PID&apos;][&apos;PID.7&apos;][&apos;PID.7.1&apos;] = msg[&apos;PID&apos;][&apos;PID.7&apos;][&apos;PID.7.1&apos;].toString();
+
+	}
+
+	catch (e) {
+		throw new Error(&apos; in function tranPid() &apos; + e.toString());
+	}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>3</sequenceNumber>
+            <name>PV1</name>
+            <script>function tranPv1() {
+	try {
+		// translate patient type
+		var newpatienttype = translateWithDefault(translator, 
+                                              	&quot;PAT-TYPE&quot;,
+                                                 msg[&apos;PV1&apos;][&apos;PV1.18&apos;][&apos;PV1.18.1&apos;].toString(),
+                                               	&quot;NOT SPECIFIED&quot;,
+											    &quot;Default Value&quot;).toString();
+
+		// Millennium requires this in both 2 and 18 - no idea why as spec says 2 should be derived from 18,
+		// yet if 2 is empty it fails. Go figure.
+		tmp[&apos;PV1&apos;][&apos;PV1.18&apos;] = newpatienttype;
+		tmp[&apos;PV1&apos;][&apos;PV1.2&apos;] = newpatienttype;
+
+		// Copy the visit number if is an ouh order
+		if(isOuh) tmp[&apos;PV1&apos;][&apos;PV1.19&apos;] = msg[&apos;PV1&apos;][&apos;PV1.19&apos;][&apos;PV1.19.1&apos;].toString();
+
+		// MRD 16/05/2011 Translate the patient location
+	
+		tmp[&apos;PV1&apos;][&apos;PV1.3&apos;] = translateWithDefault(translator, 
+                                               &quot;LOCATION&quot;,
+                                               msg[&apos;ORC&apos;][&apos;ORC.13&apos;][&apos;ORC.13.1&apos;].toString(),
+                                               &quot;NOC-Ward C&quot;,
+											   &quot;Default value&quot;).toString();
+	}
+	catch (e) {
+		throw new Error(&apos; in function tranPv1() &apos; + e.toString());
+	}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>function tranPv1() {
+	try {
+		// translate patient type
+		var newpatienttype = translateWithDefault(translator, 
+                                              	&quot;PAT-TYPE&quot;,
+                                                 msg[&apos;PV1&apos;][&apos;PV1.18&apos;][&apos;PV1.18.1&apos;].toString(),
+                                               	&quot;NOT SPECIFIED&quot;,
+											    &quot;Default Value&quot;).toString();
+
+		// Millennium requires this in both 2 and 18 - no idea why as spec says 2 should be derived from 18,
+		// yet if 2 is empty it fails. Go figure.
+		tmp[&apos;PV1&apos;][&apos;PV1.18&apos;] = newpatienttype;
+		tmp[&apos;PV1&apos;][&apos;PV1.2&apos;] = newpatienttype;
+
+		// Copy the visit number if is an ouh order
+		if(isOuh) tmp[&apos;PV1&apos;][&apos;PV1.19&apos;] = msg[&apos;PV1&apos;][&apos;PV1.19&apos;][&apos;PV1.19.1&apos;].toString();
+
+		// MRD 16/05/2011 Translate the patient location
+	
+		tmp[&apos;PV1&apos;][&apos;PV1.3&apos;] = translateWithDefault(translator, 
+                                               &quot;LOCATION&quot;,
+                                               msg[&apos;ORC&apos;][&apos;ORC.13&apos;][&apos;ORC.13.1&apos;].toString(),
+                                               &quot;NOC-Ward C&quot;,
+											   &quot;Default value&quot;).toString();
+	}
+	catch (e) {
+		throw new Error(&apos; in function tranPv1() &apos; + e.toString());
+	}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>4</sequenceNumber>
+            <name>ORC</name>
+            <script>function tranOrc() {
+	try {
+		// Set the control code
+		tmp[&apos;ORC&apos;][&apos;ORC.1&apos;] = &quot;RE&quot;;
+
+		// set order status
+		tmp[&apos;ORC&apos;][&apos;ORC.5&apos;] = &quot;CM&quot;;
+	
+		// Pass the placer order number if Ouh order
+		if(isOuh) tmp[&apos;ORC&apos;][&apos;ORC.2&apos;] = msg[&apos;ORC&apos;][&apos;ORC.2&apos;];
+
+		// Pass the filler order number
+		// Ensure filler order number is unique within the domain (BT principles)
+		tmp[&apos;ORC&apos;][&apos;ORC.3&apos;][&apos;ORC.3.1&apos;] = msg[&apos;ORC&apos;][&apos;ORC.3&apos;][&apos;ORC.3.1&apos;].toString();
+
+		// Pass date/time of transaction
+		tmp[&apos;ORC&apos;][&apos;ORC.9&apos;] = msg[&apos;ORC&apos;][&apos;ORC.9&apos;][&apos;ORC.9.1&apos;].toString();
+
+		// Copy original CM ordering provider code - template defines assigning authority and type code
+		// MRD 22/09/2011
+		//tmp[&apos;ORC&apos;][&apos;ORC.12&apos;][&apos;ORC.12.1&apos;] = msg[&apos;OBR&apos;][&apos;OBR.18&apos;][&apos;OBR.18.1&apos;].toString();	
+	}
+	catch (e) {
+		throw new Error(&apos; in function tranOrc() &apos; + e.toString());
+	}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>function tranOrc() {
+	try {
+		// Set the control code
+		tmp[&apos;ORC&apos;][&apos;ORC.1&apos;] = &quot;RE&quot;;
+
+		// set order status
+		tmp[&apos;ORC&apos;][&apos;ORC.5&apos;] = &quot;CM&quot;;
+	
+		// Pass the placer order number if Ouh order
+		if(isOuh) tmp[&apos;ORC&apos;][&apos;ORC.2&apos;] = msg[&apos;ORC&apos;][&apos;ORC.2&apos;];
+
+		// Pass the filler order number
+		// Ensure filler order number is unique within the domain (BT principles)
+		tmp[&apos;ORC&apos;][&apos;ORC.3&apos;][&apos;ORC.3.1&apos;] = msg[&apos;ORC&apos;][&apos;ORC.3&apos;][&apos;ORC.3.1&apos;].toString();
+
+		// Pass date/time of transaction
+		tmp[&apos;ORC&apos;][&apos;ORC.9&apos;] = msg[&apos;ORC&apos;][&apos;ORC.9&apos;][&apos;ORC.9.1&apos;].toString();
+
+		// Copy original CM ordering provider code - template defines assigning authority and type code
+		// MRD 22/09/2011
+		//tmp[&apos;ORC&apos;][&apos;ORC.12&apos;][&apos;ORC.12.1&apos;] = msg[&apos;OBR&apos;][&apos;OBR.18&apos;][&apos;OBR.18.1&apos;].toString();	
+	}
+	catch (e) {
+		throw new Error(&apos; in function tranOrc() &apos; + e.toString());
+	}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>5</sequenceNumber>
+            <name>ORC-VP</name>
+            <script>// Special processing for ViewPoint Obs Ultrasound Reports
+function tranOrcVp() {
+	try {
+		// Set the control code
+		tmp[&apos;ORC&apos;][&apos;ORC.1&apos;] = &quot;RE&quot;;
+
+		// set order status
+		tmp[&apos;ORC&apos;][&apos;ORC.5&apos;] = &quot;CM&quot;;
+	
+		// Pass the filler order number
+		tmp[&apos;ORC&apos;][&apos;ORC.3&apos;][&apos;ORC.3.1&apos;] = msg[&apos;ORC&apos;][&apos;ORC.3&apos;][&apos;ORC.3.1&apos;].toString();
+	}
+	catch (e) {
+		throw new Error(&apos; in function tranOrcVp() &apos; + e.toString());
+	}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// Special processing for ViewPoint Obs Ultrasound Reports
+function tranOrcVp() {
+	try {
+		// Set the control code
+		tmp[&apos;ORC&apos;][&apos;ORC.1&apos;] = &quot;RE&quot;;
+
+		// set order status
+		tmp[&apos;ORC&apos;][&apos;ORC.5&apos;] = &quot;CM&quot;;
+	
+		// Pass the filler order number
+		tmp[&apos;ORC&apos;][&apos;ORC.3&apos;][&apos;ORC.3.1&apos;] = msg[&apos;ORC&apos;][&apos;ORC.3&apos;][&apos;ORC.3.1&apos;].toString();
+	}
+	catch (e) {
+		throw new Error(&apos; in function tranOrcVp() &apos; + e.toString());
+	}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>6</sequenceNumber>
+            <name>OBR</name>
+            <script>function tranObr() {
+	try {
+
+		
+		// Pass Placer Order Number if this is an OUH order
+		if(isOuh) tmp[&apos;OBR&apos;][&apos;OBR.2&apos;] = msg[&apos;ORC&apos;][&apos;ORC.2&apos;][&apos;ORC.2.1&apos;].toString();
+
+		// Pass Filler Order Number
+		tmp[&apos;OBR&apos;][&apos;OBR.3&apos;] = msg[&apos;ORC&apos;][&apos;ORC.3&apos;];
+
+		// Pass service ID
+    	var tranResult = translateAndLogWithDefault(translator, 
+                         &quot;EXAM-CODE&quot;,
+                         msg[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.1&apos;].toString(),
+						 &quot;ZZDEF&quot;,
+						 &quot;Default exam code&quot;,
+						 &quot;OBR.4.1&quot;);
+
+		tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.1&apos;] = tranResult.getToCode();
+		tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.2&apos;] = tranResult.getToValue();
+
+		// Copy observation data time from ORC.7.4
+		// Temporary to cater for CRIS sending out stupid dates
+		if ( msg[&apos;ORC&apos;][&apos;ORC.7&apos;][&apos;ORC.7.4&apos;].toString().substr(0,4) == &quot;2099&quot; ) { 
+			tmp[&apos;OBR&apos;][&apos;OBR.7&apos;] = DateUtil.getCurrentDate(&quot;yyyyMMddHHmm&quot;);
+		}
+		else {
+			tmp[&apos;OBR&apos;][&apos;OBR.7&apos;] = msg[&apos;ORC&apos;][&apos;ORC.7&apos;][&apos;ORC.7.4&apos;].toString();
+		}
+
+		// Copy the EPR ordering provider code returned from CRIS in &apos;Placer Field 1&apos; 
+		tmp[&apos;OBR&apos;][&apos;OBR.16&apos;][&apos;OBR.16.1&apos;] = msg[&apos;OBR&apos;][&apos;OBR.18&apos;][&apos;OBR.18.1&apos;].toString();
+
+		// Copy filler field 2 - needed for web PACS?
+		tmp[&apos;OBR&apos;][&apos;OBR.21&apos;] = msg[&apos;OBR&apos;][&apos;OBR.21&apos;][&apos;OBR.21.1&apos;].toString();
+
+		// MRD 24/05/2011 Flag result status
+		tmp[&apos;OBR&apos;][&apos;OBR.25&apos;][&apos;OBR.25.1&apos;] = &quot;F&quot;;
+
+
+		// MRD 16/05/2011 Copy start date/time
+		// Temporary to cater for CRIS sending out stupid dates
+		if ( msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.4&apos;].toString().substr(0,4) == &quot;2099&quot; ) { 
+			tmp[&apos;OBR&apos;][&apos;OBR.27&apos;][&apos;OBR.27.4&apos;] = DateUtil.getCurrentDate(&quot;yyyyMMddHHmm&quot;);
+		}
+		else {
+			tmp[&apos;OBR&apos;][&apos;OBR.27&apos;][&apos;OBR.27.4&apos;] = msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.4&apos;].toString();
+		}
+
+    	// Translate priority
+		tmp[&apos;OBR&apos;][&apos;OBR.27&apos;][&apos;OBR.27.6&apos;] = translateAndLog(translator, 
+                                        &quot;PRIORITY&quot;,
+                                        msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.6&apos;].toString(),
+										&quot;OBR.27.6&quot;).toString();
+	
+		// Copy scheduled date/time from OBR.27
+		// Temporary to cater for CRIS sending out stupid dates
+		if (msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.4&apos;].toString().substr(0,4) == &quot;2099&quot; ) { 
+			tmp[&apos;OBR&apos;][&apos;OBR.36&apos;] = DateUtil.getCurrentDate(&quot;yyyyMMddHHmm&quot;);
+		}
+		else {
+			tmp[&apos;OBR&apos;][&apos;OBR.36&apos;] = msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.4&apos;].toString();
+		}
+	}
+	catch (e) {
+		throw new Error(&apos; in function tranObr() &apos; + e.toString());
+	}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>function tranObr() {
+	try {
+
+		
+		// Pass Placer Order Number if this is an OUH order
+		if(isOuh) tmp[&apos;OBR&apos;][&apos;OBR.2&apos;] = msg[&apos;ORC&apos;][&apos;ORC.2&apos;][&apos;ORC.2.1&apos;].toString();
+
+		// Pass Filler Order Number
+		tmp[&apos;OBR&apos;][&apos;OBR.3&apos;] = msg[&apos;ORC&apos;][&apos;ORC.3&apos;];
+
+		// Pass service ID
+    	var tranResult = translateAndLogWithDefault(translator, 
+                         &quot;EXAM-CODE&quot;,
+                         msg[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.1&apos;].toString(),
+						 &quot;ZZDEF&quot;,
+						 &quot;Default exam code&quot;,
+						 &quot;OBR.4.1&quot;);
+
+		tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.1&apos;] = tranResult.getToCode();
+		tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.2&apos;] = tranResult.getToValue();
+
+		// Copy observation data time from ORC.7.4
+		// Temporary to cater for CRIS sending out stupid dates
+		if ( msg[&apos;ORC&apos;][&apos;ORC.7&apos;][&apos;ORC.7.4&apos;].toString().substr(0,4) == &quot;2099&quot; ) { 
+			tmp[&apos;OBR&apos;][&apos;OBR.7&apos;] = DateUtil.getCurrentDate(&quot;yyyyMMddHHmm&quot;);
+		}
+		else {
+			tmp[&apos;OBR&apos;][&apos;OBR.7&apos;] = msg[&apos;ORC&apos;][&apos;ORC.7&apos;][&apos;ORC.7.4&apos;].toString();
+		}
+
+		// Copy the EPR ordering provider code returned from CRIS in &apos;Placer Field 1&apos; 
+		tmp[&apos;OBR&apos;][&apos;OBR.16&apos;][&apos;OBR.16.1&apos;] = msg[&apos;OBR&apos;][&apos;OBR.18&apos;][&apos;OBR.18.1&apos;].toString();
+
+		// Copy filler field 2 - needed for web PACS?
+		tmp[&apos;OBR&apos;][&apos;OBR.21&apos;] = msg[&apos;OBR&apos;][&apos;OBR.21&apos;][&apos;OBR.21.1&apos;].toString();
+
+		// MRD 24/05/2011 Flag result status
+		tmp[&apos;OBR&apos;][&apos;OBR.25&apos;][&apos;OBR.25.1&apos;] = &quot;F&quot;;
+
+
+		// MRD 16/05/2011 Copy start date/time
+		// Temporary to cater for CRIS sending out stupid dates
+		if ( msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.4&apos;].toString().substr(0,4) == &quot;2099&quot; ) { 
+			tmp[&apos;OBR&apos;][&apos;OBR.27&apos;][&apos;OBR.27.4&apos;] = DateUtil.getCurrentDate(&quot;yyyyMMddHHmm&quot;);
+		}
+		else {
+			tmp[&apos;OBR&apos;][&apos;OBR.27&apos;][&apos;OBR.27.4&apos;] = msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.4&apos;].toString();
+		}
+
+    	// Translate priority
+		tmp[&apos;OBR&apos;][&apos;OBR.27&apos;][&apos;OBR.27.6&apos;] = translateAndLog(translator, 
+                                        &quot;PRIORITY&quot;,
+                                        msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.6&apos;].toString(),
+										&quot;OBR.27.6&quot;).toString();
+	
+		// Copy scheduled date/time from OBR.27
+		// Temporary to cater for CRIS sending out stupid dates
+		if (msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.4&apos;].toString().substr(0,4) == &quot;2099&quot; ) { 
+			tmp[&apos;OBR&apos;][&apos;OBR.36&apos;] = DateUtil.getCurrentDate(&quot;yyyyMMddHHmm&quot;);
+		}
+		else {
+			tmp[&apos;OBR&apos;][&apos;OBR.36&apos;] = msg[&apos;OBR&apos;][&apos;OBR.27&apos;][0][&apos;OBR.27.4&apos;].toString();
+		}
+	}
+	catch (e) {
+		throw new Error(&apos; in function tranObr() &apos; + e.toString());
+	}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>7</sequenceNumber>
+            <name>OBR-VP</name>
+            <script>// Special porcessing for ViewPoint Obs Ultrasound Reports
+function tranObrVp() {
+	try {
+		// Pass Filler Order Number
+		tmp[&apos;OBR&apos;][&apos;OBR.3&apos;] = msg[&apos;ORC&apos;][&apos;ORC.3&apos;];
+
+		var inboundCode = msg[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.1&apos;].toString().toUpperCase();
+//		Pass service ID
+// 24-07-12 HS
+//Modified. Relating to issue in Track+ 171.
+//Trim inbound code to capture first 10 chars
+
+    	/* var tranResult = translateAndLog(translator, 
+                         &quot;IndicationCode-VP-CM&quot;,
+                         inboundCode.toUpperCase().substring(0,11) ,
+						 &quot;OBR 4&quot;);
+		*/
+		// Pass service ID
+		var translate = &apos;&apos;
+
+		//search for special cases of Viewpoint indication that contain terms RPOC or
+		//ECTOPIC
+		if (inboundCode.search(&apos;ECTOPIC&apos;) &gt; 0)
+		{
+			translate = &apos;ECTOPIC&apos;;
+		}
+		else if (inboundCode.search(&apos;RPOC&apos;) &gt; 0)
+		{
+			translate = &apos;RPOC&apos;;
+		}
+		else
+		{
+			inboundCode = inboundCode.replace(&quot;FOLLOW UP&quot;, &quot;FU&quot;);
+
+			if (inboundCode.length &lt; 12)
+			{
+				translate = inboundCode.trim();
+			}
+			else
+			{
+				translate = inboundCode.substring(0,12);
+			}
+
+		}
+
+		logger.info(&quot;Inbound code: &quot; + inboundCode);
+		logger.info(&quot;Translate code: &quot; + translate);
+
+/*		
+    	var tranResult = translateAndLogWithDefault(translator, 
+                         &quot;IndicationCode-VP-CM&quot;,
+                         inboundCode.toUpperCase().substring(0,11),
+						 &quot;ZZDEF&quot;,
+						 &quot;Default exam code&quot;,
+						 &quot;OBR.4.1&quot;);
+*/
+    	var tranResult = translateAndLogWithDefault(translator, 
+                         &quot;IndicationCode-VP-CM&quot;,
+                         translate,
+						 &quot;ZZDEF&quot;,
+						 &quot;Default exam code&quot;,
+						 &quot;OBR.4.1&quot;);
+
+		tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.1&apos;] = tranResult.getToCode();
+		tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.2&apos;] = tranResult.getToValue();
+
+		// Copy observation data time 
+		tmp[&apos;OBR&apos;][&apos;OBR.7&apos;][&apos;OBR.7.1&apos;] = msg[&apos;OBR&apos;][&apos;OBR.7&apos;][&apos;OBR.7.1&apos;].toString();
+	
+		// Flag result status
+		tmp[&apos;OBR&apos;][&apos;OBR.25&apos;][&apos;OBR.25.1&apos;] = msg[&apos;OBR&apos;][&apos;OBR.25&apos;][&apos;OBR.25.1&apos;].toString();
+
+		// Copy start date/time	
+		tmp[&apos;OBR&apos;][&apos;OBR.27&apos;][&apos;OBR.27.4&apos;] = msg[&apos;OBR&apos;][&apos;OBR.14&apos;][&apos;OBR.14.1&apos;].toString();
+		
+		// Copy schedule date/time 
+		tmp[&apos;OBR&apos;][&apos;OBR.36&apos;][&apos;OBR.36.1&apos;] = msg[&apos;OBR&apos;][&apos;OBR.14&apos;][&apos;OBR.14.1&apos;].toString();
+		
+	}
+	catch (e) {
+		throw new Error(&apos; in function tranObrVp() &apos; + e.toString());
+	}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// Special porcessing for ViewPoint Obs Ultrasound Reports
+function tranObrVp() {
+	try {
+		// Pass Filler Order Number
+		tmp[&apos;OBR&apos;][&apos;OBR.3&apos;] = msg[&apos;ORC&apos;][&apos;ORC.3&apos;];
+
+		var inboundCode = msg[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.1&apos;].toString().toUpperCase();
+//		Pass service ID
+// 24-07-12 HS
+//Modified. Relating to issue in Track+ 171.
+//Trim inbound code to capture first 10 chars
+
+    	/* var tranResult = translateAndLog(translator, 
+                         &quot;IndicationCode-VP-CM&quot;,
+                         inboundCode.toUpperCase().substring(0,11) ,
+						 &quot;OBR 4&quot;);
+		*/
+		// Pass service ID
+		var translate = &apos;&apos;
+
+		//search for special cases of Viewpoint indication that contain terms RPOC or
+		//ECTOPIC
+		if (inboundCode.search(&apos;ECTOPIC&apos;) &gt; 0)
+		{
+			translate = &apos;ECTOPIC&apos;;
+		}
+		else if (inboundCode.search(&apos;RPOC&apos;) &gt; 0)
+		{
+			translate = &apos;RPOC&apos;;
+		}
+		else
+		{
+			inboundCode = inboundCode.replace(&quot;FOLLOW UP&quot;, &quot;FU&quot;);
+
+			if (inboundCode.length &lt; 12)
+			{
+				translate = inboundCode.trim();
+			}
+			else
+			{
+				translate = inboundCode.substring(0,12);
+			}
+
+		}
+
+		logger.info(&quot;Inbound code: &quot; + inboundCode);
+		logger.info(&quot;Translate code: &quot; + translate);
+
+/*		
+    	var tranResult = translateAndLogWithDefault(translator, 
+                         &quot;IndicationCode-VP-CM&quot;,
+                         inboundCode.toUpperCase().substring(0,11),
+						 &quot;ZZDEF&quot;,
+						 &quot;Default exam code&quot;,
+						 &quot;OBR.4.1&quot;);
+*/
+    	var tranResult = translateAndLogWithDefault(translator, 
+                         &quot;IndicationCode-VP-CM&quot;,
+                         translate,
+						 &quot;ZZDEF&quot;,
+						 &quot;Default exam code&quot;,
+						 &quot;OBR.4.1&quot;);
+
+		tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.1&apos;] = tranResult.getToCode();
+		tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.2&apos;] = tranResult.getToValue();
+
+		// Copy observation data time 
+		tmp[&apos;OBR&apos;][&apos;OBR.7&apos;][&apos;OBR.7.1&apos;] = msg[&apos;OBR&apos;][&apos;OBR.7&apos;][&apos;OBR.7.1&apos;].toString();
+	
+		// Flag result status
+		tmp[&apos;OBR&apos;][&apos;OBR.25&apos;][&apos;OBR.25.1&apos;] = msg[&apos;OBR&apos;][&apos;OBR.25&apos;][&apos;OBR.25.1&apos;].toString();
+
+		// Copy start date/time	
+		tmp[&apos;OBR&apos;][&apos;OBR.27&apos;][&apos;OBR.27.4&apos;] = msg[&apos;OBR&apos;][&apos;OBR.14&apos;][&apos;OBR.14.1&apos;].toString();
+		
+		// Copy schedule date/time 
+		tmp[&apos;OBR&apos;][&apos;OBR.36&apos;][&apos;OBR.36.1&apos;] = msg[&apos;OBR&apos;][&apos;OBR.14&apos;][&apos;OBR.14.1&apos;].toString();
+		
+	}
+	catch (e) {
+		throw new Error(&apos; in function tranObrVp() &apos; + e.toString());
+	}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>8</sequenceNumber>
+            <name>OBX</name>
+            <script>// add the FINAL/CORRECTED report status to the top of the report
+// add transcriber and verifier to the top of the report
+// collect list of exams by checking for changes in CRIS observation id
+// add a footer with the Exam name lis and exam date
+// use the EPR observation id as code, CRIS observation name in report
+
+function tranObx() {
+	try {
+		var obxCount = 1;
+		var reportStatus = &quot;&quot;;
+		var CRISObsID = &quot;&quot;;
+		var EPRObsID = &quot;&quot;;
+		var EPRObsName = &quot;&quot;;
+		var examList = &quot;&quot;;
+		var patientID = &quot;&quot;;
+		var isCorrection = false;
+		var abnormalFlag = &apos;&apos;; 
+		var lastObxValue = &apos;&apos;;
+		var DoB = &apos;&apos;;
+
+		// Compose the report header from the exam status, transcriber and verifier
+		// get the translated observation id (cs72) from tmp OBR (already translated for EPR)
+		// get the CRIS observation id from the msg OBX segment
+		// Start accumulating the list of exams reported in the message for use later.
+ 	
+		EPRObsID = tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.1&apos;].toString();
+    	EPRObsName = tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.2&apos;].toString();
+		CRISObsID = msg[&apos;OBX&apos;][0][&apos;OBX.3&apos;][&apos;OBX.3.1&apos;].toString();
+		examList += msg[&apos;OBX&apos;][0][&apos;OBX.3&apos;][&apos;OBX.3.2&apos;].toString();
+
+		// get the report status (to be safe iterate through all OBX&apos;s in case ANY are corrected)
+		// and any abnormal flags
+		// and compose list of exams for end of report
+
+		for each (seg in msg..OBX) {
+			// look for corrected flag
+			if(seg[&apos;OBX.11&apos;][&apos;OBX.11.1&apos;].toString() == &quot;C&quot;) isCorrection = true; 
+		
+			// Check if this is a different exam from the last OBX
+			// If it is we need to accumulate the exam name
+			// also need to check the last obx value for abnormal constants
+			if(seg[&apos;OBX.3&apos;][&apos;OBX.3.1&apos;].toString() != CRISObsID){
+				CRISObsID = seg[&apos;OBX.3&apos;][&apos;OBX.3.1&apos;].toString();
+				examList += &quot;, &quot; + seg[&apos;OBX.3&apos;][&apos;OBX.3.2&apos;].toString();
+				abnormalFlag = evaluateAbnormalCode(abnormalFlag, check4AbnormalFlags(lastObxValue));
+			}
+			if(seg[&apos;OBX.5&apos;][&apos;OBX.5.1&apos;].toString() != &apos;&apos;) {
+				lastObxValue = seg[&apos;OBX.5&apos;][&apos;OBX.5.1&apos;].toString();
+				logger.info(lastObxValue);
+			}
+		}
+		// now at last line of report so set abnormal flags
+		abnormalFlag = evaluateAbnormalCode(abnormalFlag, check4AbnormalFlags(lastObxValue));	
+	
+		// set report status
+		if(isCorrection) 
+			reportStatus = &quot;CORRECTED REPORT&quot;;
+		else
+			reportStatus = &quot;VERIFIED REPORT&quot;;
+
+		// Add the report status
+		createPopulatedOBX(obxCount, msg[&apos;OBX&apos;][0], abnormalFlag); 
+    	tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.1&apos;] = EPRObsID;
+		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.2&apos;] = EPRObsName;
+		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = reportStatus;
+		obxCount++;
+
+		// Add Patient Identification
+    	//Compose the observation string
+ 
+		// format DoB
+		try {
+			DoB = DateUtil.convertDate(&quot;yyyyMMdd&quot;, &quot;dd-MMM-yyyy&quot;, msg[&apos;PID&apos;][&apos;PID.7&apos;][&apos;PID.7.1&apos;].toString());
+		} 
+		catch (e) {
+			logger.info(&apos;Q_RIS_ORU_EPR could not patient format date of birth&apos;);
+		}
+		patientId = &quot;Patient is: &quot; + MRN + &quot; &quot; +  msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.1&apos;].toString() + &quot;, &quot; + msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.2&apos;].toString() + &quot; &quot; + DoB + &quot; &quot; + msg[&apos;PID&apos;][&apos;PID.8&apos;][&apos;PID.8.1&apos;].toString();
+		createPopulatedOBX(obxCount, msg[&apos;OBX&apos;][0], abnormalFlag); 
+    	tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.1&apos;] = EPRObsID;
+		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.2&apos;] = EPRObsName;
+		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = patientId;
+		obxCount++;
+
+		// Add the report verifier
+   		createPopulatedOBX(obxCount, msg[&apos;OBX&apos;][0], abnormalFlag); 
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.1&apos;] = EPRObsID;
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.2&apos;] = EPRObsName; 	
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = &quot;Verified by: &quot; + msg[&apos;OBR&apos;][&apos;OBR.32&apos;][&apos;OBR.32.1&apos;][&apos;OBR.32.1.2&apos;].toString() +
+			&quot; at &quot; + safeDateFormat(&quot;yyyyMMddHHmm&quot;, &quot;HH:mm&quot;, msg[&apos;OBR&apos;][&apos;OBR.22&apos;][&apos;OBR.22.1&apos;].toString()) +
+			&quot; on &quot; + safeDateFormat(&quot;yyyyMMddHHmm&quot;, &quot;dd/MM/yyyy&quot;, msg[&apos;OBR&apos;][&apos;OBR.22&apos;][&apos;OBR.22.1&apos;].toString());
+   		obxCount++;
+
+		// Add the report transcriber
+   		createPopulatedOBX(obxCount, msg[&apos;OBX&apos;][0], abnormalFlag);  
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.1&apos;] = EPRObsID;
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.2&apos;] = EPRObsName;	
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = &quot;Typed by: &quot; + msg[&apos;OBR&apos;][&apos;OBR.35&apos;][&apos;OBR.35.1&apos;][&apos;OBR.35.1.2&apos;].toString() +
+		   &quot; at &quot; + safeDateFormat(&quot;yyyyMMddHHmm&quot;, &quot;HH:mm&quot;, msg[&apos;OBR&apos;][&apos;OBR.35&apos;][&apos;OBR.35.2&apos;].toString()) +
+		   &quot; on &quot; + safeDateFormat(&quot;yyyyMMddHHmm&quot;, &quot;dd/MM/yyyy&quot;, msg[&apos;OBR&apos;][&apos;OBR.35&apos;][&apos;OBR.35.2&apos;].toString());
+   		obxCount++;	
+
+		// Add a blank line
+   		createPopulatedOBX(obxCount, msg[&apos;OBX&apos;][0], abnormalFlag);  
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.1&apos;] = EPRObsID;
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.2&apos;] = EPRObsName;	
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = &quot;  &quot;;
+   		obxCount++;	
+
+		// now loop through the msg obx&apos;s and create the output
+   		for each (seg in msg..OBX) {
+		
+			// Now write out the actual observation 
+			createPopulatedOBX(obxCount, seg, abnormalFlag); 
+			tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.1&apos;] = EPRObsID;
+	    	tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.2&apos;] = EPRObsName;
+			tmp[&apos;OBX&apos;][obxCount][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = seg[&apos;OBX.5&apos;][&apos;OBX.5.1&apos;]; 
+			obxCount++;	
+   		}
+
+		// finally we need to add a footer with the exam list and exam date
+   		// add a blank line; use the last created obx as the template
+   		createPopulatedOBX(obxCount, tmp[&apos;OBX&apos;][obxCount-1], abnormalFlag);  	
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = &quot;  &quot;;
+   		obxCount++;	
+   
+   		// now create the footer information with the exam list and the exam date
+  	    createPopulatedOBX(obxCount, tmp[&apos;OBX&apos;][obxCount-1], abnormalFlag);  	
+  		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = &quot;Examinations: &quot; + examList 
+                                              + &quot;      Examination Date: &quot;
+											  + safeDateFormat(&quot;yyyyMMddHHmm&quot;, &quot;dd/MM/yyyy&quot;, msg[&apos;OBR&apos;][&apos;OBR.27&apos;][&apos;OBR.27.4&apos;].toString());                                          
+    	obxCount++;	
+    	// delete 0th OBX segment that originates form the template
+		delete  tmp[&apos;OBX&apos;][0];
+	}
+	catch (e) {
+    	throw new Error(&apos; in function tranObx() &apos; + e.toString());
+	}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// add the FINAL/CORRECTED report status to the top of the report
+// add transcriber and verifier to the top of the report
+// collect list of exams by checking for changes in CRIS observation id
+// add a footer with the Exam name lis and exam date
+// use the EPR observation id as code, CRIS observation name in report
+
+function tranObx() {
+	try {
+		var obxCount = 1;
+		var reportStatus = &quot;&quot;;
+		var CRISObsID = &quot;&quot;;
+		var EPRObsID = &quot;&quot;;
+		var EPRObsName = &quot;&quot;;
+		var examList = &quot;&quot;;
+		var patientID = &quot;&quot;;
+		var isCorrection = false;
+		var abnormalFlag = &apos;&apos;; 
+		var lastObxValue = &apos;&apos;;
+		var DoB = &apos;&apos;;
+
+		// Compose the report header from the exam status, transcriber and verifier
+		// get the translated observation id (cs72) from tmp OBR (already translated for EPR)
+		// get the CRIS observation id from the msg OBX segment
+		// Start accumulating the list of exams reported in the message for use later.
+ 	
+		EPRObsID = tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.1&apos;].toString();
+    	EPRObsName = tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.2&apos;].toString();
+		CRISObsID = msg[&apos;OBX&apos;][0][&apos;OBX.3&apos;][&apos;OBX.3.1&apos;].toString();
+		examList += msg[&apos;OBX&apos;][0][&apos;OBX.3&apos;][&apos;OBX.3.2&apos;].toString();
+
+		// get the report status (to be safe iterate through all OBX&apos;s in case ANY are corrected)
+		// and any abnormal flags
+		// and compose list of exams for end of report
+
+		for each (seg in msg..OBX) {
+			// look for corrected flag
+			if(seg[&apos;OBX.11&apos;][&apos;OBX.11.1&apos;].toString() == &quot;C&quot;) isCorrection = true; 
+		
+			// Check if this is a different exam from the last OBX
+			// If it is we need to accumulate the exam name
+			// also need to check the last obx value for abnormal constants
+			if(seg[&apos;OBX.3&apos;][&apos;OBX.3.1&apos;].toString() != CRISObsID){
+				CRISObsID = seg[&apos;OBX.3&apos;][&apos;OBX.3.1&apos;].toString();
+				examList += &quot;, &quot; + seg[&apos;OBX.3&apos;][&apos;OBX.3.2&apos;].toString();
+				abnormalFlag = evaluateAbnormalCode(abnormalFlag, check4AbnormalFlags(lastObxValue));
+			}
+			if(seg[&apos;OBX.5&apos;][&apos;OBX.5.1&apos;].toString() != &apos;&apos;) {
+				lastObxValue = seg[&apos;OBX.5&apos;][&apos;OBX.5.1&apos;].toString();
+				logger.info(lastObxValue);
+			}
+		}
+		// now at last line of report so set abnormal flags
+		abnormalFlag = evaluateAbnormalCode(abnormalFlag, check4AbnormalFlags(lastObxValue));	
+	
+		// set report status
+		if(isCorrection) 
+			reportStatus = &quot;CORRECTED REPORT&quot;;
+		else
+			reportStatus = &quot;VERIFIED REPORT&quot;;
+
+		// Add the report status
+		createPopulatedOBX(obxCount, msg[&apos;OBX&apos;][0], abnormalFlag); 
+    	tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.1&apos;] = EPRObsID;
+		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.2&apos;] = EPRObsName;
+		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = reportStatus;
+		obxCount++;
+
+		// Add Patient Identification
+    	//Compose the observation string
+ 
+		// format DoB
+		try {
+			DoB = DateUtil.convertDate(&quot;yyyyMMdd&quot;, &quot;dd-MMM-yyyy&quot;, msg[&apos;PID&apos;][&apos;PID.7&apos;][&apos;PID.7.1&apos;].toString());
+		} 
+		catch (e) {
+			logger.info(&apos;Q_RIS_ORU_EPR could not patient format date of birth&apos;);
+		}
+		patientId = &quot;Patient is: &quot; + MRN + &quot; &quot; +  msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.1&apos;].toString() + &quot;, &quot; + msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.2&apos;].toString() + &quot; &quot; + DoB + &quot; &quot; + msg[&apos;PID&apos;][&apos;PID.8&apos;][&apos;PID.8.1&apos;].toString();
+		createPopulatedOBX(obxCount, msg[&apos;OBX&apos;][0], abnormalFlag); 
+    	tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.1&apos;] = EPRObsID;
+		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.2&apos;] = EPRObsName;
+		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = patientId;
+		obxCount++;
+
+		// Add the report verifier
+   		createPopulatedOBX(obxCount, msg[&apos;OBX&apos;][0], abnormalFlag); 
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.1&apos;] = EPRObsID;
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.2&apos;] = EPRObsName; 	
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = &quot;Verified by: &quot; + msg[&apos;OBR&apos;][&apos;OBR.32&apos;][&apos;OBR.32.1&apos;][&apos;OBR.32.1.2&apos;].toString() +
+			&quot; at &quot; + safeDateFormat(&quot;yyyyMMddHHmm&quot;, &quot;HH:mm&quot;, msg[&apos;OBR&apos;][&apos;OBR.22&apos;][&apos;OBR.22.1&apos;].toString()) +
+			&quot; on &quot; + safeDateFormat(&quot;yyyyMMddHHmm&quot;, &quot;dd/MM/yyyy&quot;, msg[&apos;OBR&apos;][&apos;OBR.22&apos;][&apos;OBR.22.1&apos;].toString());
+   		obxCount++;
+
+		// Add the report transcriber
+   		createPopulatedOBX(obxCount, msg[&apos;OBX&apos;][0], abnormalFlag);  
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.1&apos;] = EPRObsID;
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.2&apos;] = EPRObsName;	
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = &quot;Typed by: &quot; + msg[&apos;OBR&apos;][&apos;OBR.35&apos;][&apos;OBR.35.1&apos;][&apos;OBR.35.1.2&apos;].toString() +
+		   &quot; at &quot; + safeDateFormat(&quot;yyyyMMddHHmm&quot;, &quot;HH:mm&quot;, msg[&apos;OBR&apos;][&apos;OBR.35&apos;][&apos;OBR.35.2&apos;].toString()) +
+		   &quot; on &quot; + safeDateFormat(&quot;yyyyMMddHHmm&quot;, &quot;dd/MM/yyyy&quot;, msg[&apos;OBR&apos;][&apos;OBR.35&apos;][&apos;OBR.35.2&apos;].toString());
+   		obxCount++;	
+
+		// Add a blank line
+   		createPopulatedOBX(obxCount, msg[&apos;OBX&apos;][0], abnormalFlag);  
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.1&apos;] = EPRObsID;
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.2&apos;] = EPRObsName;	
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = &quot;  &quot;;
+   		obxCount++;	
+
+		// now loop through the msg obx&apos;s and create the output
+   		for each (seg in msg..OBX) {
+		
+			// Now write out the actual observation 
+			createPopulatedOBX(obxCount, seg, abnormalFlag); 
+			tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.1&apos;] = EPRObsID;
+	    	tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.2&apos;] = EPRObsName;
+			tmp[&apos;OBX&apos;][obxCount][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = seg[&apos;OBX.5&apos;][&apos;OBX.5.1&apos;]; 
+			obxCount++;	
+   		}
+
+		// finally we need to add a footer with the exam list and exam date
+   		// add a blank line; use the last created obx as the template
+   		createPopulatedOBX(obxCount, tmp[&apos;OBX&apos;][obxCount-1], abnormalFlag);  	
+   		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = &quot;  &quot;;
+   		obxCount++;	
+   
+   		// now create the footer information with the exam list and the exam date
+  	    createPopulatedOBX(obxCount, tmp[&apos;OBX&apos;][obxCount-1], abnormalFlag);  	
+  		tmp[&apos;OBX&apos;][obxCount][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = &quot;Examinations: &quot; + examList 
+                                              + &quot;      Examination Date: &quot;
+											  + safeDateFormat(&quot;yyyyMMddHHmm&quot;, &quot;dd/MM/yyyy&quot;, msg[&apos;OBR&apos;][&apos;OBR.27&apos;][&apos;OBR.27.4&apos;].toString());                                          
+    	obxCount++;	
+    	// delete 0th OBX segment that originates form the template
+		delete  tmp[&apos;OBX&apos;][0];
+	}
+	catch (e) {
+    	throw new Error(&apos; in function tranObx() &apos; + e.toString());
+	}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>9</sequenceNumber>
+            <name>OBX-VP</name>
+            <script>// OBX Processing for viewpoint reports
+
+function tranObxVp() {
+	try {
+		var obxCount = 1;
+		// get the observation ID and name that was set for the OBR 
+		var EPRObsID = tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.1&apos;].toString();
+		var EPRObsName = tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.2&apos;].toString();
+		
+		// loop through the msg obx&apos;s and create the output
+   		for each (seg in msg..OBX) {
+			// Now write out the actual observation 
+			createPopulatedOBX(obxCount, seg, &quot;&quot;); 
+			tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.1&apos;] = EPRObsID;
+	    	tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.2&apos;] = EPRObsName;
+			tmp[&apos;OBX&apos;][obxCount][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = seg[&apos;OBX.5&apos;][&apos;OBX.5.1&apos;]; 
+			obxCount++;	
+   		}
+
+    	// delete 0th OBX segment that originates from the template
+		delete  tmp[&apos;OBX&apos;][0];
+	}
+	catch (e) {
+    	throw new Error(&apos; in function tranObxVp() &apos; + e.toString());
+	}
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// OBX Processing for viewpoint reports
+
+function tranObxVp() {
+	try {
+		var obxCount = 1;
+		// get the observation ID and name that was set for the OBR 
+		var EPRObsID = tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.1&apos;].toString();
+		var EPRObsName = tmp[&apos;OBR&apos;][&apos;OBR.4&apos;][&apos;OBR.4.2&apos;].toString();
+		
+		// loop through the msg obx&apos;s and create the output
+   		for each (seg in msg..OBX) {
+			// Now write out the actual observation 
+			createPopulatedOBX(obxCount, seg, &quot;&quot;); 
+			tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.1&apos;] = EPRObsID;
+	    	tmp[&apos;OBX&apos;][obxCount][&apos;OBX.3&apos;][&apos;OBX.3.2&apos;] = EPRObsName;
+			tmp[&apos;OBX&apos;][obxCount][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = seg[&apos;OBX.5&apos;][&apos;OBX.5.1&apos;]; 
+			obxCount++;	
+   		}
+
+    	// delete 0th OBX segment that originates from the template
+		delete  tmp[&apos;OBX&apos;][0];
+	}
+	catch (e) {
+    	throw new Error(&apos; in function tranObxVp() &apos; + e.toString());
+	}
+}</string>
+              </entry>
+            </data>
+          </step>
+          <step>
+            <sequenceNumber>10</sequenceNumber>
+            <name>Local Functions</name>
+            <script>function createPopulatedOBX(index, templateOBX, abFlag)
+{
+	try {
+		createSegment(&apos;OBX&apos;,tmp, index);
+		tmp[&apos;OBX&apos;][index] = templateOBX;
+		tmp[&apos;OBX&apos;][index][&apos;OBX.1&apos;][&apos;OBX.1.1&apos;] = index;
+    	tmp[&apos;OBX&apos;][index][&apos;OBX.2&apos;][&apos;OBX.2.1&apos;] = &quot;TX&quot;;
+		tmp[&apos;OBX&apos;][index][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = &quot;&quot;;
+		tmp[&apos;OBX&apos;][index][&apos;OBX.8&apos;][&apos;OBX.8.1&apos;] = abFlag;
+		tmp[&apos;OBX&apos;][index][&apos;OBX.11&apos;][&apos;OBX.11.1&apos;] = &quot;F&quot;;
+		tmp[&apos;OBX&apos;][index][&apos;OBX.16&apos;] = &quot;&quot;;
+    	delete tmp[&apos;OBX&apos;][index][&apos;OBX.3&apos;][&apos;OBX.3.3&apos;];
+	}
+	catch (e) {
+		logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( createPopulatedOBX ) &quot; + e.name + &quot;: &quot; + e.message);
+		throw e;
+	}
+}
+
+
+function safeDateFormat(inFormat, outFormat, value)
+{
+	var date = &quot;&quot;;
+
+	if(value.length &gt; 0) 
+		date = DateUtil.convertDate(inFormat, outFormat, value);
+	
+	return date;
+}
+
+function removeSpaces(input)
+{
+	// match 1 or more space characters
+	var regX2 =  new RegExp(&quot;[ ]{1,}&quot;, &quot;g&quot;);
+	
+    return input.replace(regX2, &quot;&quot;);
+}
+
+function removeInitial(forename){
+	var strippedName = forename;
+	var spaceIndex = forename.lastIndexOf(&quot; &quot;);
+
+	if(spaceIndex &gt; -1) strippedName = forename.substring(0,spaceIndex);	
+	
+	return strippedName;
+}
+
+function check4AbnormalFlags(value) {
+	var abCode = &apos;&apos;;
+	var checkString = new String(value.toUpperCase());
+
+	try{
+		if(checkString.lastIndexOf(&apos;CRITICAL&apos;) != -1) abCode = &apos;CRT&apos;;
+		else if (checkString.lastIndexOf(&apos;ABNORMAL&apos;) != -1) abCode = &apos;ABN&apos;;
+	}
+	catch (e) {
+		throw new Error(&apos; in check4AbnormalFlags &apos; + e.toString());
+	}
+	finally {
+		return abCode; 
+	}
+}
+
+function evaluateAbnormalCode(currentValue, newValue){
+	var abnormalCode = currentValue;
+	try{
+		if(newValue == &apos;CRT&apos;) abnormalCode = newValue;
+		else if(newValue == &apos;ABN&apos; &amp;&amp; currentValue != &apos;CRT&apos;) abnormalCode = newValue;
+	}
+	catch (e) {
+		throw new Error(&apos; evaluateAbnormalCode &apos; + e.toString());
+	}
+	finally {
+		return abnormalCode; 
+	}
+
+
+
+
+
+}</script>
+            <type>JavaScript</type>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>function createPopulatedOBX(index, templateOBX, abFlag)
+{
+	try {
+		createSegment(&apos;OBX&apos;,tmp, index);
+		tmp[&apos;OBX&apos;][index] = templateOBX;
+		tmp[&apos;OBX&apos;][index][&apos;OBX.1&apos;][&apos;OBX.1.1&apos;] = index;
+    	tmp[&apos;OBX&apos;][index][&apos;OBX.2&apos;][&apos;OBX.2.1&apos;] = &quot;TX&quot;;
+		tmp[&apos;OBX&apos;][index][&apos;OBX.5&apos;][&apos;OBX.5.1&apos;] = &quot;&quot;;
+		tmp[&apos;OBX&apos;][index][&apos;OBX.8&apos;][&apos;OBX.8.1&apos;] = abFlag;
+		tmp[&apos;OBX&apos;][index][&apos;OBX.11&apos;][&apos;OBX.11.1&apos;] = &quot;F&quot;;
+		tmp[&apos;OBX&apos;][index][&apos;OBX.16&apos;] = &quot;&quot;;
+    	delete tmp[&apos;OBX&apos;][index][&apos;OBX.3&apos;][&apos;OBX.3.3&apos;];
+	}
+	catch (e) {
+		logger.error(&quot;Channel &quot; + getChannelName() + &quot; ( createPopulatedOBX ) &quot; + e.name + &quot;: &quot; + e.message);
+		throw e;
+	}
+}
+
+
+function safeDateFormat(inFormat, outFormat, value)
+{
+	var date = &quot;&quot;;
+
+	if(value.length &gt; 0) 
+		date = DateUtil.convertDate(inFormat, outFormat, value);
+	
+	return date;
+}
+
+function removeSpaces(input)
+{
+	// match 1 or more space characters
+	var regX2 =  new RegExp(&quot;[ ]{1,}&quot;, &quot;g&quot;);
+	
+    return input.replace(regX2, &quot;&quot;);
+}
+
+function removeInitial(forename){
+	var strippedName = forename;
+	var spaceIndex = forename.lastIndexOf(&quot; &quot;);
+
+	if(spaceIndex &gt; -1) strippedName = forename.substring(0,spaceIndex);	
+	
+	return strippedName;
+}
+
+function check4AbnormalFlags(value) {
+	var abCode = &apos;&apos;;
+	var checkString = new String(value.toUpperCase());
+
+	try{
+		if(checkString.lastIndexOf(&apos;CRITICAL&apos;) != -1) abCode = &apos;CRT&apos;;
+		else if (checkString.lastIndexOf(&apos;ABNORMAL&apos;) != -1) abCode = &apos;ABN&apos;;
+	}
+	catch (e) {
+		throw new Error(&apos; in check4AbnormalFlags &apos; + e.toString());
+	}
+	finally {
+		return abCode; 
+	}
+}
+
+function evaluateAbnormalCode(currentValue, newValue){
+	var abnormalCode = currentValue;
+	try{
+		if(newValue == &apos;CRT&apos;) abnormalCode = newValue;
+		else if(newValue == &apos;ABN&apos; &amp;&amp; currentValue != &apos;CRT&apos;) abnormalCode = newValue;
+	}
+	catch (e) {
+		throw new Error(&apos; evaluateAbnormalCode &apos; + e.toString());
+	}
+	finally {
+		return abnormalCode; 
+	}
+
+
+
+
+
+}</string>
+              </entry>
+            </data>
+          </step>
+        </steps>
+        <inboundTemplate encoding="base64">TVNIfF5+XCZ8UkJGX1RFU1RfUklTfFJCRnxSQkZfVEVTVF9USUV8UkJGfDIwMTEwNTIwMTI0NjM0
+fHxPUlVeUjAxfDIzMzY4ODQ4ODowfFB8Mi40fHx8fHx8fA1QSUR8fHwyNDA0Xl5eQ1JJU15QSX4x
+MDA2Mjc0Nl5eXlJCRjAzXk1SfHxCT1NUT05eQVBSSUx8fDE5NjIwNzA0fEZ8fHw2IENBTElCQU4g
+TUVXU15IRUFUSENPVEVeXldBUldJQ0teQ1YzNCA2RlN8fDAxOTI2NTc4OTQ1fHx8fHx8fHx8QXx8
+fHx8fHwiInxODVBWMXx8fHx8fHx8fHx8fHx8fHx8fEF8NDM3OTY4DU9SQ3xTQ3w2MjY2NDEzfDQw
+NDReQ1JJU3x8Q018fF5eXjIwMTEwNTIwMTI0NF5eMXx8MjAxMTA1MjAxMjQ2fFJJU1RSQUlOfHxD
+MTUyNDk3MF5CVVJHRSBQRHxSQkYwM1dBUkRBfHwyMDExMDUyMDAwMDB8fDExMHxSQkYwM3xSSVNU
+UkFJTnx8Xl5SQkYwMw1PQlJ8fDYyNjY0MTN8NDA0NF5DUklTfFhGSU1SXlhSIEZpbmdlciBNaWRk
+bGUgUnR8fHx8fHx8fHx8fHx8fEMxNTI0OTcwfHwzODYzfFJCRjAwMDA0MDQ0fDIwMTEwNTIwMTI0
+Nnx8Unx8fF5eXjIwMTEwNTIwMTI0NF5eMXx8fHx8QzIzNTAzODEmRGF2aWQgV2lsc29uIENvbnN1
+bHRhbnQgUmFkaW9sb2dpc3ReMjAxMTA1MjAwMDAwfCZCTEFOSyBSQURJT0x8XjIwMTEwNTIwXjIw
+MTEwNTIwXl5eXlJCRjAzfCZTaGFoZWVuIE5vb3JhbmleMjAxMTA1MjAxMjQ2DU9CWHwxfFRYfFhG
+SU1SXlhSIEZpbmdlciBNaWRkbGUgUnReQ1JJUzN8fFtSZXBvcnQgU3VtbWFyeV18fHx8fHxGfHx8
+MjAxMTA1MjAxMjQ2fHxDMjM1MDM4MV5EYXZpZCBXaWxzb24gQ29uc3VsdGFudCBSYWRpb2xvZ2lz
+dA1PQlh8MnxUWHxYRklNUl5YUiBGaW5nZXIgTWlkZGxlIFJ0XkNSSVMzfHx8fHx8fHxGfHx8MjAx
+MTA1MjAxMjQ2fHxDMjM1MDM4MV5EYXZpZCBXaWxzb24gQ29uc3VsdGFudCBSYWRpb2xvZ2lzdA1P
+Qlh8M3xUWHxYRklNUl5YUiBGaW5nZXIgTWlkZGxlIFJ0XkNSSVMzfHxUaGlzIGlzIHJlcG9ydCBo
+ZWFkZXJ8fHx8fHxGfHx8MjAxMTA1MjAxMjQ2fHxDMjM1MDM4MV5EYXZpZCBXaWxzb24gQ29uc3Vs
+dGFudCBSYWRpb2xvZ2lzdA1PQlh8NHxUWHxYRklNUl5YUiBGaW5nZXIgTWlkZGxlIFJ0XkNSSVMz
+fHx8fHx8fHxGfHx8MjAxMTA1MjAxMjQ2fHxDMjM1MDM4MV5EYXZpZCBXaWxzb24gQ29uc3VsdGFu
+dCBSYWRpb2xvZ2lzdA1PQlh8NXxUWHxYRklNUl5YUiBGaW5nZXIgTWlkZGxlIFJ0XkNSSVMzfHxb
+WFIgRmluZ2VyIE1pZGRsZSBSdF18fHx8fHxGfHx8MjAxMTA1MjAxMjQ2fHxDMjM1MDM4MV5EYXZp
+ZCBXaWxzb24gQ29uc3VsdGFudCBSYWRpb2xvZ2lzdA1PQlh8NnxUWHxYRklNUl5YUiBGaW5nZXIg
+TWlkZGxlIFJ0XkNSSVMzfHx8fHx8fHxGfHx8MjAxMTA1MjAxMjQ2fHxDMjM1MDM4MV5EYXZpZCBX
+aWxzb24gQ29uc3VsdGFudCBSYWRpb2xvZ2lzdA1PQlh8N3xUWHxYRklNUl5YUiBGaW5nZXIgTWlk
+ZGxlIFJ0XkNSSVMzfHxUaGlzIGlzIHJlcG9ydCB0ZXh0fHx8fHx8Rnx8fDIwMTEwNTIwMTI0Nnx8
+QzIzNTAzODFeRGF2aWQgV2lsc29uIENvbnN1bHRhbnQgUmFkaW9sb2dpc3QNT0JYfDh8VFh8WEZJ
+TVJeWFIgRmluZ2VyIE1pZGRsZSBSdF5DUklTM3x8fHx8fHx8Rnx8fDIwMTEwNTIwMTI0Nnx8QzIz
+NTAzODFeRGF2aWQgV2lsc29uIENvbnN1bHRhbnQgUmFkaW9sb2dpc3Q=</inboundTemplate>
+        <outboundTemplate encoding="base64">TVNIfF5+XCZ8T1hPTl9USUVfUkFEfE9YT058U0MwNENFUlR8T1hPTnx8fE9SVV5SMDF8fFB8Mi4z
+DVBJRHx8fHx8Xnx8DVBWMXx8fHx8fHx8fHx8fHx8fHx8fHwNT1JDfHx8fHx8fHx8fHx8fHx8fA1P
+QlJ8fHx8Xnx8fHx8fHx8fHx8fF5eXl5eXl5eRFJOQlJeUFJTTkx8fHx8fHx8fHx8fF5eXl5efHx8
+fHx8fHx8Ck9CWHx8VFh8Xl58fHx8fHx8fHx8fHx8CgoKDQ==</outboundTemplate>
+        <inboundProtocol>HL7V2</inboundProtocol>
+        <outboundProtocol>HL7V2</outboundProtocol>
+        <inboundProperties>
+          <property name="convertLFtoCR">true</property>
+          <property name="handleRepetitions">true</property>
+          <property name="handleSubcomponents">true</property>
+          <property name="stripNamespaces">true</property>
+          <property name="useStrictParser">false</property>
+          <property name="useStrictValidation">false</property>
+        </inboundProperties>
+        <outboundProperties>
+          <property name="convertLFtoCR">true</property>
+          <property name="handleRepetitions">true</property>
+          <property name="handleSubcomponents">false</property>
+          <property name="stripNamespaces">true</property>
+          <property name="useStrictParser">false</property>
+          <property name="useStrictValidation">false</property>
+        </outboundProperties>
+      </transformer>
+      <filter>
+        <rules>
+          <rule>
+            <sequenceNumber>0</sequenceNumber>
+            <name>DuplicateFilter</name>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// filter duplicates, pass if duplicate checking is off
+
+var dupStatus = getDuplicateStatus(); 
+
+return (dupStatus == &apos;NODUP&apos;|| dupStatus == &apos;NOCHK&apos;) ;</string>
+              </entry>
+            </data>
+            <type>JavaScript</type>
+            <script>// filter duplicates, pass if duplicate checking is off
+
+var dupStatus = getDuplicateStatus(); 
+
+return (dupStatus == &apos;NODUP&apos;|| dupStatus == &apos;NOCHK&apos;) ;</script>
+            <operator>NONE</operator>
+          </rule>
+          <rule>
+            <sequenceNumber>1</sequenceNumber>
+            <name>Filter Report Status</name>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>// Only pass corrected or final reports, suppress preliminary reports
+try {
+	var reportStatus = false;
+	
+	if(msg[&apos;MSH&apos;][&apos;MSH.3&apos;][&apos;MSH.3.1&apos;].toString() == &apos;GE&apos;) {
+		reportStatus = (msg[&apos;OBR&apos;][&apos;OBR.25&apos;][&apos;OBR.25.1&apos;].toString() == &apos;F&apos;);
+	}
+	else {
+		reportStatus = ( msg[&apos;OBX&apos;][0][&apos;OBX.11&apos;][&apos;OBX.11.1&apos;].toString() == &quot;C&quot; ||
+	 	  				 msg[&apos;OBX&apos;][0][&apos;OBX.11&apos;][&apos;OBX.11.1&apos;].toString() == &quot;F&quot; );
+
+	}	
+	return reportStatus;
+}
+catch (e) {
+	throw new Error(&quot;Channel &quot; + getChannelName() + &quot; Filter Report status&quot; + e.name + &quot;: &quot; + e.message);
+}</string>
+              </entry>
+            </data>
+            <type>JavaScript</type>
+            <script>// Only pass corrected or final reports, suppress preliminary reports
+try {
+	var reportStatus = false;
+	
+	if(msg[&apos;MSH&apos;][&apos;MSH.3&apos;][&apos;MSH.3.1&apos;].toString() == &apos;GE&apos;) {
+		reportStatus = (msg[&apos;OBR&apos;][&apos;OBR.25&apos;][&apos;OBR.25.1&apos;].toString() == &apos;F&apos;);
+	}
+	else {
+		reportStatus = ( msg[&apos;OBX&apos;][0][&apos;OBX.11&apos;][&apos;OBX.11.1&apos;].toString() == &quot;C&quot; ||
+	 	  				 msg[&apos;OBX&apos;][0][&apos;OBX.11&apos;][&apos;OBX.11.1&apos;].toString() == &quot;F&quot; );
+
+	}	
+	return reportStatus;
+}
+catch (e) {
+	throw new Error(&quot;Channel &quot; + getChannelName() + &quot; Filter Report status&quot; + e.name + &quot;: &quot; + e.message);
+}</script>
+            <operator>AND</operator>
+          </rule>
+          <rule>
+            <sequenceNumber>2</sequenceNumber>
+            <name>PatientHasName</name>
+            <data class="map">
+              <entry>
+                <string>Script</string>
+                <string>try {
+	var hasName = false;
+
+	hasName = (msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.1&apos;].toString().length &gt; 0) 
+               &amp;&amp; (msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.2&apos;].toString().length &gt; 0); 
+			
+	if(!hasName) {
+		var placerID = msg[&apos;OBR&apos;][&apos;OBR.2&apos;][&apos;OBR.2.1&apos;].toString();
+		var fillerID = msg[&apos;OBR&apos;][&apos;OBR.3&apos;][&apos;OBR.3.1&apos;].toString();
+		var msgCtrlId = msg[&apos;MSH&apos;][&apos;MSH.10&apos;][&apos;MSH.10.1&apos;].toString();
+		var alertMsg = &quot;Result message for RIS order &quot; 
+                       + placerID + &quot;/&quot; 
+                       + fillerID 
+                       + &quot; does not contain a patient name. Msg. control ID = &quot;
+					   + msgCtrlId;  
+
+		
+		alerts.sendAlert(alertMsg);
+		logger.error(alertMsg);
+	}
+	
+	return hasName;
+}
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; Filter PatientHasName&quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+	
+}</string>
+              </entry>
+            </data>
+            <type>JavaScript</type>
+            <script>try {
+	var hasName = false;
+
+	hasName = (msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.1&apos;].toString().length &gt; 0) 
+               &amp;&amp; (msg[&apos;PID&apos;][&apos;PID.5&apos;][&apos;PID.5.2&apos;].toString().length &gt; 0); 
+			
+	if(!hasName) {
+		var placerID = msg[&apos;OBR&apos;][&apos;OBR.2&apos;][&apos;OBR.2.1&apos;].toString();
+		var fillerID = msg[&apos;OBR&apos;][&apos;OBR.3&apos;][&apos;OBR.3.1&apos;].toString();
+		var msgCtrlId = msg[&apos;MSH&apos;][&apos;MSH.10&apos;][&apos;MSH.10.1&apos;].toString();
+		var alertMsg = &quot;Result message for RIS order &quot; 
+                       + placerID + &quot;/&quot; 
+                       + fillerID 
+                       + &quot; does not contain a patient name. Msg. control ID = &quot;
+					   + msgCtrlId;  
+
+		
+		alerts.sendAlert(alertMsg);
+		logger.error(alertMsg);
+	}
+	
+	return hasName;
+}
+catch (e) {
+	logger.error(&quot;Channel &quot; + getChannelName() + &quot; Filter PatientHasName&quot; + e.name + &quot;: &quot; + e.message);
+	throw e;
+	
+}</script>
+            <operator>AND</operator>
+          </rule>
+        </rules>
+      </filter>
+      <transportName>LLP Sender</transportName>
+      <mode>DESTINATION</mode>
+      <enabled>true</enabled>
+      <version>2.2.1.5861</version>
+    </connector>
+    <connector>
+      <name>testing</name>
+      <properties>
+        <property name="DataType">Channel Writer</property>
+        <property name="host">sink</property>
+        <property name="synchronised">0</property>
+        <property name="template">${message.encodedData}</property>
+      </properties>
+      <transformer>
+        <steps/>
+        <inboundProtocol>HL7V2</inboundProtocol>
+        <outboundProtocol>HL7V2</outboundProtocol>
+        <inboundProperties>
+          <property name="convertLFtoCR">true</property>
+          <property name="handleRepetitions">false</property>
+          <property name="handleSubcomponents">false</property>
+          <property name="stripNamespaces">true</property>
+          <property name="useStrictParser">false</property>
+          <property name="useStrictValidation">false</property>
+        </inboundProperties>
+        <outboundProperties>
+          <property name="convertLFtoCR">true</property>
+          <property name="handleRepetitions">false</property>
+          <property name="handleSubcomponents">false</property>
+          <property name="stripNamespaces">true</property>
+          <property name="useStrictParser">false</property>
+          <property name="useStrictValidation">false</property>
+        </outboundProperties>
+      </transformer>
+      <filter>
+        <rules/>
+      </filter>
+      <transportName>Channel Writer</transportName>
+      <mode>DESTINATION</mode>
+      <enabled>false</enabled>
+      <version>2.2.1.5861</version>
+    </connector>
+  </destinationConnectors>
+  <properties>
+    <property name="clearGlobalChannelMap">true</property>
+    <property name="dont_store_filtered">false</property>
+    <property name="encryptData">false</property>
+    <property name="error_messages_only">false</property>
+    <property name="initialState">started</property>
+    <property name="max_message_age">-1</property>
+    <property name="store_messages">true</property>
+    <property name="synchronous">true</property>
+    <property name="transactional">false</property>
+  </properties>
+  <preprocessingScript>// Modify the message variable below to pre process data
+return message;</preprocessingScript>
+  <postprocessingScript>// This script executes once after a message has been processed
+try {
+	// update the subscription for the current message using the saved
+    // subscription number and the reponse outcome 
+    var subsNumber = getSubscriptionNumber();
+
+	//08-10-10 HS
+	//Hardcoded channel to get response code from destination named &apos;destination&apos;. This can
+	//be modified in the cloned channel, but the developer has to be aware that they MUST
+	//modifiy the string below to reflect that change. Advisory - do not change. 
+    var resString = getResponseCode(&quot;destination&quot;);
+	//var resString = getResponseCode(&quot;testing&quot;);
+
+	resString = Packages.nhs.ohis.si.generic.StringHelper.removeWhitespaces(resString);
+	
+	Packages.nhs.ohis.si.queueing.MessageQueuer.setSubscriptionOutcome(getQueueDBConnection(),subsNumber, resString);
+	
+	//if this portion of code is reached then the message has been sent successfully 
+	if (resString==&apos;AA&apos;) {
+		if(getAttemptRetryFlag() == true)
+		{
+/*
+			//26-AUG-2011 HS
+			//Normalising the email alert message that will be returned when the connection to 
+			//EPR is lost to match other channels
+			alerts.sendAlert(&apos;INFO - Connectivity with EPR has been re-established.&apos;);
+			logger.info(&quot;Connectivity with the EPR has been re-established.&quot;);
+			setAttemptRetryFlag(false);		
+*/
+			//09-AUG HS+JC - Using sendAlert code template
+			var alertSubject = &apos;Connection re-established&apos;;
+			var alertMessage = &apos;The connection with EPR has been re-established.&apos;;
+			sendAlert(alertSubject, alertMessage);
+			setAttemptRetryFlag(false);	
+		}
+	}
+
+	//10-NOV MD &amp; HS
+	//Code to set lastSubMsgNbr is set when the message has been sent, filtered or queued (on Mirth 
+	//queue). If code is not implemented like this then fact that message is filtered or queued will
+	//not be respected and subscribing rate will still take place at max rate
+	var response = responseMap.get(&quot;destination&quot;);	
+   	if(response != null) {
+		var status = response.getStatus();
+		if(status == &apos;SUCCESS&apos; || status == &apos;FILTERED&apos; || status == &apos;QUEUED&apos;)
+   		{
+			setLastSubMsgNbr(getQueueID(), getMsgNumber());
+   		}
+	}
+	else
+	{
+		var alertSubject = &apos;Check Channel Destination name&apos;;
+		var alertMessage = &apos;The destination name on this subscribing channel is not set to the default name of \&apos;destination\&apos;.\r\n&apos;;
+		alertMessage += &apos;Please check and amend in post-processor code.\r\n&apos;;
+
+		sendAlert(alertSubject, alertMessage);
+	}
+}
+catch(err) 
+{
+	if(containsString(err.message.toString(),&quot;20988&quot;)){
+		// trigger retry alert here 
+		if (getAttemptRetryFlag() == false)
+		{
+/*
+			alerts.sendAlert(&apos;WARN - Message retry count exceeded. Will continue to retry and alert only when connectivity with EPR is re-established&apos;);
+			setAttemptRetryFlag(true);
+			logger.error(getChannelName() + &quot;: Retry exceeded error caught. &quot; + err.message);
+*/
+			//26-AUG-2011 HS
+			//Normalising the email alert message that will be returned when the connection to 
+			//EPR is lost to match other channels
+			var alertSubject = &apos;Connection lost&apos;;
+			var alertMessage = &apos;The connection with EPR has been lost.\r\n&apos;;
+			alertMessage += &apos;The TIE will attempt to automatically recover the connection with this system and will alert only when connectivity is re-established.\r\n&apos;;
+			alertMessage += &apos;If connectivity is not achieved within 1 hour of receiving this e-mail please contact the EPR helpdesk.\r\n&apos;;
+			sendAlert(alertSubject, alertMessage);
+			setAttemptRetryFlag(true);	
+		}
+	}
+	else {
+		logger.error(&quot;Postprocessor-&quot; + err.message);
+    	stopChannel(channelId);
+	}
+}
+finally {
+	// clear the subscription number so that the will get the next message in the queue  
+	setSubscriptionNumber(&quot;&quot;);
+}
+
+return;</postprocessingScript>
+  <deployScript>try
+{	
+	/*
+		30-10-2010 HS 
+		Hardcode the name of the channel
+	*/
+	globalMap.put(channelId,&apos;Q_RIS_ORU_EPR&apos;);
+
+	//	Setting initial value of attempt retry flag that is used for minimizing custom alerts	
+	if (getAttemptRetryFlag() == null)
+	{
+		setAttemptRetryFlag(false);
+	}
+
+	setQueueDBConnection();
+
+	//Initialize translator	
+	var translator = Packages.nhs.ohis.si.translator.Translator();
+	translator.addChannelTranslationSets(channelName, getQueueDBConnection());
+	
+     setTranslator(channelId, translator);	
+    //Translator logic end
+	return;
+}
+catch (e)
+{
+	logger.error(&quot;An exception occurred in the Deploy script of channel &quot; + channelName + &quot; . Error name: &quot; + e.name + &quot;. Error message: &quot; + e.message);
+	stopChannel(channelId);
+}</deployScript>
+  <shutdownScript>	var translator = getTranslator();
+	if (translator != null)
+	{
+		translator.closeTranslationSets();
+		logger.info(&quot;Successfully excuted shutdown script for &quot; + getChannelName());
+	}
+	else
+	{
+		logger.error(&quot;A translator could not be found for this channel: &quot; + getChannelName());
+	}
+
+	closeQueueDbConnection();
+
+	return;</shutdownScript>
+</channel>
